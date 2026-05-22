@@ -415,47 +415,47 @@ const LEVEL_CONFIG = [
 
 ## 10. 开发顺序（建议 1.5 天完成）
 
-### 第 1 步：项目骨架（1 小时）
-- `npm create vite@latest . -- --template vanilla-ts`
-- 安装 `phaser`
-- 创建基础目录结构
-- 写一个空的 Phaser GameScene，能看到灰色背景
+### ✅ 第 1 步：项目骨架（1 小时）
+- [x] `npm create vite@latest . -- --template vanilla-ts`（手动创建，npm 不可用）
+- [x] 安装 `phaser`（已写入 package.json，需运行 `npm install`）
+- [x] 创建基础目录结构
+- [x] 写一个空的 Phaser GameScene，能看到灰色背景
 
 ### 第 2 步：登录页 → 进入游戏（0.5 小时）
-- 写 login-screen DOM
-- 点击按钮隐藏 login，显示 game-container，启动 Phaser
+- [ ] 写 login-screen DOM
+- [ ] 点击按钮隐藏 login，显示 game-container，启动 Phaser
 
 ### 第 3 步：玩家移动 + 攻击（1.5 小时）
-- Player 类：WASD 移动、鼠标点击攻击、HP、经验
-- Bullet 类：生成、移动、碰撞销毁
-- 在 GameScene 中跑通
+- [ ] Player 类：WASD 移动、鼠标点击攻击、HP、经验
+- [ ] Bullet 类：生成、移动、碰撞销毁
+- [ ] 在 GameScene 中跑通
 
 ### 第 4 步：敌人（1.5 小时）
-- Enemy 类：追踪 AI、三种类型
-- 碰撞检测（子弹 vs 敌人、敌人 vs 玩家）
-- 击败敌人给经验、删除敌人
+- [ ] Enemy 类：追踪 AI、三种类型
+- [ ] 碰撞检测（子弹 vs 敌人、敌人 vs 玩家）
+- [ ] 击败敌人给经验、删除敌人
 
 ### 第 5 步：经验升级 + 三选一（2 小时）
-- 经验满 → 触发升级事件 → 弹出 DOM 面板
-- EvolutionSystem：随机抽 3 个选项
-- 点击选项 → 应用 buff/debuff → 叠加视觉部件
-- 关闭面板，进入下一关
+- [ ] 经验满 → 触发升级事件 → 弹出 DOM 面板
+- [ ] EvolutionSystem：随机抽 3 个选项
+- [ ] 点击选项 → 应用 buff/debuff → 叠加视觉部件
+- [ ] 关闭面板，进入下一关
 
 ### 第 6 步：多关卡 + Boss（1.5 小时）
-- 关卡配置加载
-- 清完当前关卡敌人 → 自动加载下一关
-- Boss 特殊处理（血条、体积、伤害）
+- [ ] 关卡配置加载
+- [ ] 清完当前关卡敌人 → 自动加载下一关
+- [ ] Boss 特殊处理（血条、体积、伤害）
 
 ### 第 7 步：结算页（1 小时）
-- 三关完成后展示 summary-screen
-- 用 Canvas 画最终形态
-- 拼接实验报告文案
-- 再开一局按钮
+- [ ] 三关完成后展示 summary-screen
+- [ ] 用 Canvas 画最终形态
+- [ ] 拼接实验报告文案
+- [ ] 再开一局按钮
 
 ### 第 8 步：调手感 + 修 bug（2 小时）
-- 数值调整
-- 边缘情况处理
-- 体验优化
+- [ ] 数值调整
+- [ ] 边缘情况处理
+- [ ] 体验优化
 
 **总计约 11 小时，一天半可以完成。**
 

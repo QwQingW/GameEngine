@@ -5,7 +5,7 @@ import { Player } from "../entities/Player";
 import { Bullet } from "../entities/Bullet";
 import { Enemy } from "../entities/Enemy";
 import { EvolutionSystem } from "../systems/EvolutionSystem";
-import { EvolutionOption, ALL_EVOLUTIONS } from "../data/evolutions";
+import { ALL_EVOLUTIONS } from "../data/evolutions";
 
 export class GameScene extends Phaser.Scene {
   private player!: Player;
@@ -391,7 +391,27 @@ export class GameScene extends Phaser.Scene {
   // -------------------------------------------------------
   private onGameComplete(): void {
     this.isGameFrozen = true;
-    window.dispatchEvent(new CustomEvent("game-complete"));
+    const p = this.player;
+    window.dispatchEvent(
+      new CustomEvent("game-complete", {
+        detail: {
+          level: p.level,
+          hp: p.hp,
+          maxHp: p.maxHp,
+          damage: p.damage,
+          speed: p.speed,
+          dodgeChance: p.dodgeChance,
+          critChance: p.critChance,
+          sizeMultiplier: p.sizeMultiplier,
+          evolutionLog: p.evolutionLog.map((ev) => ({
+            id: ev.id,
+            name: ev.name,
+            type: ev.type,
+          })),
+          visualParts: [...p.visualParts],
+        },
+      }),
+    );
   }
 
   // -------------------------------------------------------

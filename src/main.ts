@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { GameScene } from "./scenes/GameScene";
 import { EvolutionOption, typeIcon, typeLabel } from "./data/evolutions";
 import { EvolutionSystem } from "./systems/EvolutionSystem";
+import { drawFinalForm, generateReport, PlayerSummary } from "./utils/report";
 
 export let playerNickname = "";
 
@@ -30,6 +31,7 @@ function createGame(): void {
 
 const loginScreen = document.getElementById("login-screen")!;
 const gameScreen = document.getElementById("game-screen")!;
+const summaryScreen = document.getElementById("summary-screen")!;
 const nicknameInput = document.getElementById("nickname") as HTMLInputElement;
 const btnStart = document.getElementById("btn-start")!;
 
@@ -44,6 +46,7 @@ btnStart.addEventListener("click", () => {
   playerNickname = name;
   loginScreen.style.display = "none";
   gameScreen.style.display = "flex";
+  summaryScreen.classList.remove("show");
   createGame();
 });
 
@@ -58,14 +61,12 @@ const evoCardsContainer = document.getElementById("evo-cards")!;
 
 /**
  * 显示进化面板
- * 由 GameScene 通过 CustomEvent 触发
  */
 window.addEventListener("show-evolution", (() => {
   const handler = (e: Event) => {
     const detail = (e as CustomEvent).detail as { options: EvolutionOption[] };
     if (!game) return;
 
-    // 暂停 Phaser
     game.scene.scenes[0].scene.pause();
 
     evoCardsContainer.innerHTML = "";
@@ -111,27 +112,72 @@ window.addEventListener("hide-evolution", () => {
 });
 
 /**
- * 全部通关 → 过渡到结算页（第 7 步实现完整 DOM）
+ * 全部通关 → 结算页
  */
-window.addEventListener("game-complete", () => {
+window.addEventListener("game-complete", ((e: Event) => {
+  const detail = (e as CustomEvent).detail as PlayerSummary;
+  if (!detail) return;
+
   // 销毁 Phaser 游戏实例
   if (game) {
     game.destroy(true);
     game = null;
   }
 
-  // 在 game-container 内显示通关提示
-  const container = document.getElementById("game-container")!;
-  container.innerHTML = `
-    <div style="
-      width:800px; height:600px;
-      display:flex; flex-direction:column;
-      justify-content:center; align-items:center;
-      background:#1a1a2e; color:#e2e8f0;
-    ">
-      <h2 style="color:#4ade80; font-size:28px; margin-bottom:12px;">🧬 实验完成！</h2>
-      <p style="color:#94a3b8; font-size:14px; margin-bottom:20px;">实验员 ${playerNickname}：三关全部通过</p>
-      <p style="color:#64748b; font-size:12px;">结算页将在下一步实现</p>
-    </div>
+  // 切到结算页
+  gameScreen.style.display = "none";
+  summaryScreen.classList.add("show");
+
+  // 绘制最终形态
+  const canvas = document.getElementById("final-canvas") as HTMLCanvasElement;
+  drawFinalForm(canvas, detail.visualParts, detail.sizeMultiplier);
+
+  // 进化路线
+  const evoPathEl = document.getElementById("evo-path")!;
+  const pathStr = detail.evolutionLog.length
+    ? detail.evolutionLog.map((ev) => {
+        const icon = ev.type === "food" ? "🍖" : ev.type === "drug" ? "💊" : "🧪";
+        return `${icon} ${ev.name}`;
+      }).join("  →  ")
+    : "（未发生进化）";
+  evoPathEl.textContent = pathStr;
+
+  // 属性面板
+  const statsGrid = document.getElementById("stats-grid")!;
+  const dodgePct = Math.round(detail.dodgeChance * 100);
+  const critPct = Math.round(detail.critChance * 100);
+  statsGrid.innerHTML = `
+    <span>❤️ HP</span><span class="stat-val">${detail.hp} / ${detail.maxHp}</span>
+    <span>⚔️ 攻击力</span><span class="stat-val">${detail.damage}</span>
+    <span>🏃 速度</span><span class="stat-val">${detail.speed}</span>
+    <span>🛡️ 闪避率</span><span class="stat-val">${dodgePct}%</span>
+    <span>💥 暴击率</span><span class="stat-val">${critPct}%</span>
+    <span>📏 体型</span><span class="stat-val">${Math.round((1 + detail.sizeMultiplier) * 100)}%</span>
+    <span>⬆️ 等级</span><span class="stat-val">Lv.${detail.level}</span>
+    <span>🧬 变异数</span><span class="stat-val">${detail.evolutionLog.length} 次</span>
   `;
-});
+
+  // 实验报告
+  const reportEl = document.getElementById("report-text")!;
+  reportEl.textContent = generateReport(
+    playerNickname,
+    detail.evolutionLog,
+    detail.visualParts,
+  );
+
+  // 副标题
+  document.getElementById("summary-subtitle")!.textContent =
+    `实验员 ${playerNickname} · 本次实验完成`;
+
+  // 再开一局
+  const btnRestart = document.getElementById("btn-restart")!;
+  const restartHandler = () => {
+    btnRestart.removeEventListener("click", restartHandler);
+    summaryScreen.classList.remove("show");
+    loginScreen.style.display = "flex";
+    nicknameInput.value = "";
+    nicknameInput.focus();
+  };
+  btnRestart.addEventListener("click", restartHandler);
+}) as EventListener);
+

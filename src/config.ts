@@ -1,3 +1,6 @@
+// 敌人类型
+export type EnemyType = "normal" | "fast" | "boss";
+
 // 游戏全局常量
 export const GAME_WIDTH = 800;
 export const GAME_HEIGHT = 600;
@@ -31,3 +34,44 @@ export const ENEMY_BOSS_DAMAGE = 25;
 export const ENEMY_BOSS_RADIUS = 30;
 
 export const ENEMY_ATTACK_COOLDOWN = 1.0;
+
+// 关卡配置
+export interface LevelSpawnGroup {
+  type: EnemyType;
+  count: number;
+}
+
+export interface LevelConfig {
+  id: number;
+  name: string;
+  enemies: LevelSpawnGroup[];
+}
+
+export const LEVEL_CONFIGS: LevelConfig[] = [
+  {
+    id: 1,
+    name: "基因培育室",
+    enemies: [
+      { type: "normal", count: 5 },
+    ],
+  },
+  {
+    id: 2,
+    name: "变异长廊",
+    enemies: [
+      { type: "normal", count: 3 },
+      { type: "fast", count: 3 },
+    ],
+  },
+  {
+    id: 3,
+    name: "最终实验场",
+    enemies: [
+      { type: "normal", count: 2 },
+      { type: "fast", count: 2 },
+      { type: "boss", count: 1 },
+    ],
+  },
+];
+
+export const TOTAL_LEVELS = LEVEL_CONFIGS.length;

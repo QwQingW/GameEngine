@@ -109,3 +109,29 @@ window.addEventListener("hide-evolution", () => {
     game.scene.scenes[0].scene.resume();
   }
 });
+
+/**
+ * 全部通关 → 过渡到结算页（第 7 步实现完整 DOM）
+ */
+window.addEventListener("game-complete", () => {
+  // 销毁 Phaser 游戏实例
+  if (game) {
+    game.destroy(true);
+    game = null;
+  }
+
+  // 在 game-container 内显示通关提示
+  const container = document.getElementById("game-container")!;
+  container.innerHTML = `
+    <div style="
+      width:800px; height:600px;
+      display:flex; flex-direction:column;
+      justify-content:center; align-items:center;
+      background:#1a1a2e; color:#e2e8f0;
+    ">
+      <h2 style="color:#4ade80; font-size:28px; margin-bottom:12px;">🧬 实验完成！</h2>
+      <p style="color:#94a3b8; font-size:14px; margin-bottom:20px;">实验员 ${playerNickname}：三关全部通过</p>
+      <p style="color:#64748b; font-size:12px;">结算页将在下一步实现</p>
+    </div>
+  `;
+});

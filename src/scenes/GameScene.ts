@@ -1,9 +1,9 @@
 import Phaser from "phaser";
-import { GAME_WIDTH, GAME_HEIGHT } from "../config";
+import { GAME_WIDTH, GAME_HEIGHT, LEVEL_CONFIGS, TOTAL_LEVELS, EnemyType } from "../config";
 import { playerNickname } from "../main";
 import { Player } from "../entities/Player";
 import { Bullet } from "../entities/Bullet";
-import { Enemy, EnemyType } from "../entities/Enemy";
+import { Enemy } from "../entities/Enemy";
 import { EvolutionSystem } from "../systems/EvolutionSystem";
 import { EvolutionOption, ALL_EVOLUTIONS } from "../data/evolutions";
 
@@ -29,10 +29,18 @@ export class GameScene extends Phaser.Scene {
   private infoText!: Phaser.GameObjects.Text;
   private enemyCountText!: Phaser.GameObjects.Text;
   private levelText!: Phaser.GameObjects.Text;
+  private levelBannerText!: Phaser.GameObjects.Text;
+  private bossHPBarBg!: Phaser.GameObjects.Graphics;
+  private bossHPBarFill!: Phaser.GameObjects.Graphics;
 
   private isGameFrozen = false;
   private bulletVanishChance = 0;
   private levelUpQueue = 0;
+
+  // 关卡进度
+  private currentLevel = 0; // 0-based index
+  private evolutionChosenThisLevel = false;
+  private levelTransitioning = false;
 
   constructor() {
     super({ key: "GameScene" });
@@ -65,16 +73,29 @@ export class GameScene extends Phaser.Scene {
     this.expBarBg = this.add.graphics();
     this.hpBarFill = this.add.graphics();
     this.expBarFill = this.add.graphics();
+    this.bossHPBarBg = this.add.graphics();
+    this.bossHPBarFill = this.add.graphics();
 
-    this.levelText = this.add
-      .text(12, 50, "", {
-        fontSize: "13px", color: "#f1c40f",
+    // 关卡横幅文字
+    this.levelBannerText = this.add
+      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 40, "", {
+        fontSize: "28px", color: "#7dd3fc", align: "center",
         fontFamily: "PingFang SC, Microsoft YaHei, sans-serif",
-      });
+        backgroundColor: "rgba(0,0,0,0.85)",
+        padding: { x: 32, y: 16 },
+      })
+      .setOrigin(0.5)
+      .setAlpha(0);
 
     this.enemyCountText = this.add
       .text(12, 34, "", {
         fontSize: "13px", color: "#e74c3c",
+        fontFamily: "PingFang SC, Microsoft YaHei, sans-serif",
+      });
+
+    this.levelText = this.add
+      .text(12, 50, "", {
+        fontSize: "13px", color: "#f1c40f",
         fontFamily: "PingFang SC, Microsoft YaHei, sans-serif",
       });
 
@@ -88,11 +109,94 @@ export class GameScene extends Phaser.Scene {
     // 监听进化选择
     window.addEventListener("choose-evolution", this.onEvolutionChosen);
 
-    this.spawnWave();
+    // 启动第 1 关
+    this.startLevel(0);
   }
+
+  // ========================================================
+  // 关卡系统
+  // ========================================================
+
+  private startLevel(levelIndex: number): void {
+    this.currentLevel = levelIndex;
+    this.evolutionChosenThisLevel = false;
+    this.levelTransitioning = true;
+
+    const cfg = LEVEL_CONFIGS[levelIndex];
+
+    // 显示关卡横幅
+    this.showLevelBanner(`第 ${cfg.id} 关：${cfg.name}`);
+
+    // 延迟刷怪（等横幅动画结束）
+    this.time.delayedCall(1800, () => {
+      this.levelTransitioning = false;
+      this.spawnWave(cfg);
+    });
+  }
+
+  private showLevelBanner(text: string): void {
+    this.levelBannerText.setText(text);
+    this.levelBannerText.setAlpha(1);
+
+    // 淡出动画
+    this.tweens.add({
+      targets: this.levelBannerText,
+      alpha: 0,
+      delay: 1200,
+      duration: 600,
+    });
+  }
+
+  private spawnWave(cfg: { id: number; name: string; enemies: { type: EnemyType; count: number }[] }): void {
+    for (const group of cfg.enemies) {
+      this.spawnEnemies(group.type, group.count);
+    }
+  }
+
+  private spawnEnemies(type: EnemyType, count: number): void {
+    for (let i = 0; i < count; i++) {
+      const zone = this.spawnZones[Math.floor(Math.random() * this.spawnZones.length)];
+      const offX = (Math.random() - 0.5) * 60;
+      const offY = (Math.random() - 0.5) * 60;
+      this.enemies.push(new Enemy(this, zone.x + offX, zone.y + offY, type));
+    }
+  }
+
+  /** 检查当前关卡是否全部击杀 */
+  private isLevelCleared(): boolean {
+    return this.enemies.length === 0 || this.enemies.every((e) => !e.alive);
+  }
+
+  /** 进入下一关或通关 */
+  private proceedToNextLevel(): void {
+    const nextIndex = this.currentLevel + 1;
+    if (nextIndex >= TOTAL_LEVELS) {
+      // 全部通关 → 触发结算
+      this.onGameComplete();
+      return;
+    }
+
+    // 清除旧敌人
+    for (const enemy of this.enemies) {
+      enemy.destroy();
+    }
+    this.enemies = [];
+
+    this.startLevel(nextIndex);
+  }
+
+  // ========================================================
+  // update
+  // ========================================================
 
   update(_time: number, delta: number): void {
     if (this.isGameFrozen) return;
+
+    // 关卡过渡中：不处理逻辑，只画 HUD
+    if (this.levelTransitioning) {
+      this.drawHUD();
+      return;
+    }
 
     // 玩家
     this.player.update(delta, this.time.now);
@@ -125,9 +229,9 @@ export class GameScene extends Phaser.Scene {
       ) {
         enemy.markAttacked(this.time.now);
         const dodged = this.player.takeDamage(enemy.damage);
-        // dodged 时不扣血（takeDamage 内部处理）
         if (!dodged && this.player.hp <= 0) {
           this.onPlayerDeath();
+          return;
         }
       }
     }
@@ -141,22 +245,10 @@ export class GameScene extends Phaser.Scene {
       this.levelUpQueue--;
       this.triggerEvolutionPanel();
     }
-  }
 
-  // -------------------------------------------------------
-  // 刷怪
-  // -------------------------------------------------------
-  private spawnWave(): void {
-    this.spawnEnemies("normal", 5);
-    this.spawnEnemies("fast", 2);
-  }
-
-  private spawnEnemies(type: EnemyType, count: number): void {
-    for (let i = 0; i < count; i++) {
-      const zone = this.spawnZones[Math.floor(Math.random() * this.spawnZones.length)];
-      const offX = (Math.random() - 0.5) * 60;
-      const offY = (Math.random() - 0.5) * 60;
-      this.enemies.push(new Enemy(this, zone.x + offX, zone.y + offY, type));
+    // 已进化完成 && 本关敌人全部死亡 → 进入下一关
+    if (this.evolutionChosenThisLevel && this.isLevelCleared()) {
+      this.proceedToNextLevel();
     }
   }
 
@@ -218,6 +310,9 @@ export class GameScene extends Phaser.Scene {
     const option = ALL_EVOLUTIONS.find((o) => o.id === detail.id);
     if (!option) return;
 
+    // 标记本关已进化
+    this.evolutionChosenThisLevel = true;
+
     // 特殊处理记忆罐头 & 混沌培养液
     let resolvedOption = { ...option };
     if (option.id === "memory" && this.player.evolutionLog.length > 0) {
@@ -227,11 +322,9 @@ export class GameScene extends Phaser.Scene {
         buff: { ...prev.buff },
         debuff: {
           ...prev.debuff,
-          // 副作用翻倍（简化处理：再叠加一次）
         },
         visualParts: [...option.visualParts],
       };
-      // 副作用翻倍：再应用一次 debuff
     }
     if (option.id === "chaos") {
       const pool = ALL_EVOLUTIONS.filter(
@@ -267,6 +360,14 @@ export class GameScene extends Phaser.Scene {
 
     window.dispatchEvent(new CustomEvent("hide-evolution"));
     this.isGameFrozen = false;
+
+    // 进化面板关闭后，检查是否可以直接进入下一关
+    // 有短暂延迟让面板动画结束
+    this.time.delayedCall(100, () => {
+      if (this.isLevelCleared()) {
+        this.proceedToNextLevel();
+      }
+    });
   }).bind(this);
 
   // -------------------------------------------------------
@@ -286,6 +387,14 @@ export class GameScene extends Phaser.Scene {
   }
 
   // -------------------------------------------------------
+  // 全部通关
+  // -------------------------------------------------------
+  private onGameComplete(): void {
+    this.isGameFrozen = true;
+    window.dispatchEvent(new CustomEvent("game-complete"));
+  }
+
+  // -------------------------------------------------------
   // HUD
   // -------------------------------------------------------
   private drawHUD(): void {
@@ -293,6 +402,7 @@ export class GameScene extends Phaser.Scene {
     const barW = 160;
     const barH = 14;
 
+    // HP 条
     this.hpBarBg.clear();
     this.hpBarBg.fillStyle(0x333333);
     this.hpBarBg.fillRect(barX, 14, barW, barH);
@@ -302,6 +412,7 @@ export class GameScene extends Phaser.Scene {
     this.hpBarFill.fillStyle(0xe74c3c);
     this.hpBarFill.fillRect(barX, 14, barW * hpRatio, barH);
 
+    // EXP 条
     this.expBarBg.clear();
     this.expBarBg.fillStyle(0x333333);
     this.expBarBg.fillRect(barX, 34, barW, barH);
@@ -311,8 +422,10 @@ export class GameScene extends Phaser.Scene {
     this.expBarFill.fillStyle(0xf1c40f);
     this.expBarFill.fillRect(barX, 34, barW * expRatio, barH);
 
+    // 敌人数量 + 关卡信息
     const aliveCount = this.enemies.filter((e) => e.alive).length;
-    this.enemyCountText.setText(`👾 剩余敌人：${aliveCount}`);
+    const cfg = LEVEL_CONFIGS[this.currentLevel];
+    this.enemyCountText.setText(`👾 第${cfg.id}关：${cfg.name} | 剩余敌人：${aliveCount}`);
 
     // 已获得部件
     const partNames = this.player.visualParts.length
@@ -320,10 +433,50 @@ export class GameScene extends Phaser.Scene {
       : "";
     this.levelText.setText(`Lv.${this.player.level}  ${partNames}`);
 
+    // Boss 血条（屏幕中上方的独立血条）
+    this.drawBossHUD();
+
     if (this.infoText) {
       this.infoText.setText(
         `WASD 移动  |  鼠标点击 攻击  |  HP:${this.player.hp}  EXP:${this.player.exp}/${this.player.expToNext}`,
       );
     }
   }
+
+  /** Boss 专用大血条（画面顶部中央） */
+  private drawBossHUD(): void {
+    this.bossHPBarBg.clear();
+    this.bossHPBarFill.clear();
+
+    // 查找当前关卡中的 boss
+    const boss = this.enemies.find((e) => e.type === "boss" && e.alive);
+    if (!boss) return;
+
+    const barW = 400;
+    const barH = 10;
+    const barX = (GAME_WIDTH - barW) / 2;
+    const barY = 6;
+
+    // 背景
+    this.bossHPBarBg.fillStyle(0x333333);
+    this.bossHPBarBg.fillRect(barX, barY, barW, barH);
+
+    // 血量
+    const ratio = Phaser.Math.Clamp(boss.hp / boss.maxHp, 0, 1);
+    this.bossHPBarFill.fillStyle(0xbb66ff);
+    this.bossHPBarFill.fillRect(barX, barY, barW * ratio, barH);
+
+    // Boss 名称标签
+    if (!this._bossNameText) {
+      this._bossNameText = this.add
+        .text(GAME_WIDTH / 2, barY - 12, "BOSS · 最终实验体", {
+          fontSize: "11px", color: "#bb66ff", align: "center",
+          fontFamily: "PingFang SC, Microsoft YaHei, sans-serif",
+        })
+        .setOrigin(0.5, 1);
+    }
+    this._bossNameText.setVisible(true);
+  }
+
+  private _bossNameText?: Phaser.GameObjects.Text;
 }

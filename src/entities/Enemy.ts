@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import {
+  EnemyType,
   ENEMY_NORMAL_HP,
   ENEMY_NORMAL_SPEED,
   ENEMY_NORMAL_DAMAGE,
@@ -15,8 +16,6 @@ import {
   ENEMY_ATTACK_COOLDOWN,
   EXP_PER_KILL,
 } from "../config";
-
-export type EnemyType = "normal" | "fast" | "boss";
 
 export class Enemy {
   public x: number;

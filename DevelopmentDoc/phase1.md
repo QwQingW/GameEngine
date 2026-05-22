@@ -425,10 +425,10 @@ const LEVEL_CONFIG = [
 - [x] 写 login-screen DOM
 - [x] 点击按钮隐藏 login，显示 game-container，启动 Phaser
 
-### 第 3 步：玩家移动 + 攻击（1.5 小时）
-- [ ] Player 类：WASD 移动、鼠标点击攻击、HP、经验
-- [ ] Bullet 类：生成、移动、碰撞销毁
-- [ ] 在 GameScene 中跑通
+### ✅ 第 3 步：玩家移动 + 攻击（1.5 小时）
+- [x] Player 类：WASD 移动、鼠标点击攻击、HP、经验
+- [x] Bullet 类：生成、移动、碰撞销毁
+- [x] 在 GameScene 中跑通
 
 ### 第 4 步：敌人（1.5 小时）
 - [ ] Enemy 类：追踪 AI、三种类型

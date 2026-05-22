@@ -6,14 +6,16 @@ export class Bullet {
   public y: number;
   public radius: number = BULLET_RADIUS;
   public sprite: Phaser.GameObjects.Arc;
+  public vanished = false;
 
   private angle: number;
-  private speed: number = BULLET_SPEED;
+  private speed: number;
 
-  constructor(scene: Phaser.Scene, x: number, y: number, angle: number) {
+  constructor(scene: Phaser.Scene, x: number, y: number, angle: number, speedMultiplier = 1) {
     this.x = x;
     this.y = y;
     this.angle = angle;
+    this.speed = BULLET_SPEED * speedMultiplier;
 
     this.sprite = scene.add.circle(x, y, BULLET_RADIUS, 0xffdd44);
   }
@@ -25,7 +27,6 @@ export class Bullet {
     this.sprite.setPosition(this.x, this.y);
   }
 
-  /** 是否已经飞出地图 */
   isOutOfBounds(): boolean {
     const margin = 50;
     return (
@@ -34,6 +35,15 @@ export class Bullet {
       this.y < -margin ||
       this.y > 600 + margin
     );
+  }
+
+  /** 随机消失（bulletsVanish debuff） */
+  tryVanish(chance: number): boolean {
+    if (Math.random() < chance) {
+      this.vanished = true;
+      return true;
+    }
+    return false;
   }
 
   destroy(): void {

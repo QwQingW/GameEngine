@@ -14,11 +14,8 @@
 
     /* ====== 登录页 ====== */
     #login-screen {
-      width: 100vw;
-      height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      width: 100vw; height: 100vh;
+      display: flex; justify-content: center; align-items: center;
       background: radial-gradient(ellipse at center, #16213e 0%, #0a0a1a 100%);
     }
     .login-panel {
@@ -26,82 +23,99 @@
       background: rgba(255,255,255,0.05);
       border: 1px solid rgba(100,200,255,0.2);
       border-radius: 16px;
-      padding: 48px 40px 36px;
-      min-width: 380px;
+      padding: 48px 40px 36px; min-width: 380px;
       backdrop-filter: blur(4px);
     }
-    .login-panel h1 {
-      font-size: 28px;
-      color: #7dd3fc;
-      margin-bottom: 6px;
-      letter-spacing: 2px;
-    }
-    .login-panel .subtitle {
-      font-size: 13px;
-      color: #64748b;
-      margin-bottom: 32px;
-    }
-    .login-panel label {
-      display: block;
-      font-size: 14px;
-      color: #94a3b8;
-      margin-bottom: 8px;
-      text-align: left;
-    }
+    .login-panel h1 { font-size: 28px; color: #7dd3fc; margin-bottom: 6px; letter-spacing: 2px; }
+    .login-panel .subtitle { font-size: 13px; color: #64748b; margin-bottom: 32px; }
+    .login-panel label { display: block; font-size: 14px; color: #94a3b8; margin-bottom: 8px; text-align: left; }
     .login-panel input {
-      width: 100%;
-      padding: 10px 14px;
-      font-size: 16px;
-      border: 1px solid rgba(100,200,255,0.3);
-      border-radius: 8px;
-      background: rgba(0,0,0,0.4);
-      color: #e2e8f0;
-      outline: none;
+      width: 100%; padding: 10px 14px; font-size: 16px;
+      border: 1px solid rgba(100,200,255,0.3); border-radius: 8px;
+      background: rgba(0,0,0,0.4); color: #e2e8f0; outline: none;
       transition: border-color 0.2s;
     }
-    .login-panel input:focus {
-      border-color: #38bdf8;
-    }
+    .login-panel input:focus { border-color: #38bdf8; }
     .login-panel button {
-      width: 100%;
-      margin-top: 20px;
-      padding: 12px 0;
-      font-size: 17px;
-      font-weight: 600;
-      color: #0f172a;
-      background: linear-gradient(135deg, #38bdf8, #818cf8);
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      letter-spacing: 1px;
+      width: 100%; margin-top: 20px; padding: 12px 0; font-size: 17px; font-weight: 600;
+      color: #0f172a; background: linear-gradient(135deg, #38bdf8, #818cf8);
+      border: none; border-radius: 8px; cursor: pointer; letter-spacing: 1px;
       transition: opacity 0.2s, transform 0.1s;
     }
-    .login-panel button:hover {
-      opacity: 0.9;
-    }
-    .login-panel button:active {
-      transform: scale(0.97);
-    }
-    .login-panel .hint {
-      margin-top: 14px;
-      font-size: 12px;
-      color: #475569;
-    }
+    .login-panel button:hover { opacity: 0.9; }
+    .login-panel button:active { transform: scale(0.97); }
+    .login-panel .hint { margin-top: 14px; font-size: 12px; color: #475569; }
 
     /* ====== 游戏容器 ====== */
     #game-screen {
       display: none;
-      width: 100vw;
-      height: 100vh;
-      justify-content: center;
-      align-items: center;
-    }
-    #game-container {
-      width: 800px;
-      height: 600px;
+      width: 100vw; height: 100vh;
+      justify-content: center; align-items: center;
       position: relative;
     }
+    #game-container { width: 800px; height: 600px; position: relative; }
     canvas { display: block; }
+
+    /* ====== 进化选择面板（覆盖在游戏上方） ====== */
+    #evolution-overlay {
+      display: none;
+      position: absolute; top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.75);
+      justify-content: center; align-items: center;
+      z-index: 10;
+    }
+    #evolution-overlay.show { display: flex; }
+    .evolution-inner {
+      text-align: center;
+      max-width: 780px;
+    }
+    .evolution-inner h2 {
+      font-size: 26px; color: #7dd3fc; margin-bottom: 6px;
+    }
+    .evolution-inner .sub {
+      font-size: 13px; color: #64748b; margin-bottom: 20px;
+    }
+    .evo-cards {
+      display: flex; gap: 16px; justify-content: center;
+    }
+    .evo-card {
+      flex: 1;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      padding: 18px 14px 14px;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s, transform 0.1s;
+      min-width: 200px;
+    }
+    .evo-card:hover {
+      border-color: rgba(125,211,252,0.5);
+      background: rgba(125,211,252,0.1);
+    }
+    .evo-card:active { transform: scale(0.97); }
+    .evo-card .type-badge {
+      display: inline-block;
+      font-size: 12px;
+      padding: 2px 10px;
+      border-radius: 10px;
+      margin-bottom: 8px;
+    }
+    .evo-card .type-badge.food  { background: rgba(241,196,15,0.2); color: #f1c40f; }
+    .evo-card .type-badge.drug  { background: rgba(231,76,60,0.2); color: #e74c3c; }
+    .evo-card .type-badge.experiment { background: rgba(155,89,182,0.2); color: #9b59b6; }
+    .evo-card .evo-name {
+      font-size: 18px; color: #e2e8f0; margin-bottom: 10px; font-weight: 600;
+    }
+    .evo-card .evo-buff {
+      font-size: 12px; color: #4ade80; margin-bottom: 4px;
+    }
+    .evo-card .evo-debuff {
+      font-size: 12px; color: #f87171; margin-bottom: 8px;
+    }
+    .evo-card .evo-hint {
+      font-size: 11px; color: #475569;
+    }
   </style>
 </head>
 <body>
@@ -111,21 +125,23 @@
       <h1>🧬 变异吧！人类！</h1>
       <p class="subtitle">AI 驱动的变异进化肉鸽 · 最小原型</p>
       <label for="nickname">实验员代号</label>
-      <input
-        id="nickname"
-        type="text"
-        maxlength="8"
-        placeholder="请输入你的代号"
-        autocomplete="off"
-      />
+      <input id="nickname" type="text" maxlength="8" placeholder="请输入你的代号" autocomplete="off" />
       <button id="btn-start">开 始 实 验</button>
       <p class="hint">WASD 移动 · 鼠标点击攻击 · 击杀敌人进化</p>
     </div>
   </div>
 
-  <!-- 游戏画面（初始隐藏） -->
+  <!-- 游戏画面 -->
   <div id="game-screen">
     <div id="game-container"></div>
+    <!-- 进化选择覆盖层 -->
+    <div id="evolution-overlay">
+      <div class="evolution-inner">
+        <h2>🧬 进化选择</h2>
+        <p class="sub">选择一个变异方向</p>
+        <div id="evo-cards" class="evo-cards"></div>
+      </div>
+    </div>
   </div>
 
   <script type="module" src="/src/main.ts"></script>

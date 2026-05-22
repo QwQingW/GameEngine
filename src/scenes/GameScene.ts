@@ -4,6 +4,8 @@ import { playerNickname } from "../main";
 import { Player } from "../entities/Player";
 import { Bullet } from "../entities/Bullet";
 import { Enemy, EnemyType } from "../entities/Enemy";
+import { EvolutionSystem } from "../systems/EvolutionSystem";
+import { EvolutionOption, ALL_EVOLUTIONS } from "../data/evolutions";
 
 export class GameScene extends Phaser.Scene {
   private player!: Player;
@@ -12,7 +14,6 @@ export class GameScene extends Phaser.Scene {
 
   private enemies: Enemy[] = [];
 
-  // 预定义刷怪区（避开玩家出生点中心）
   private spawnZones: { x: number; y: number }[] = [
     { x: 120, y: 100 },  { x: 680, y: 100 },
     { x: 120, y: 500 },  { x: 680, y: 500 },
@@ -27,115 +28,125 @@ export class GameScene extends Phaser.Scene {
   private expBarFill!: Phaser.GameObjects.Graphics;
   private infoText!: Phaser.GameObjects.Text;
   private enemyCountText!: Phaser.GameObjects.Text;
+  private levelText!: Phaser.GameObjects.Text;
+
+  private isGameFrozen = false;
+  private bulletVanishChance = 0;
+  private levelUpQueue = 0;
 
   constructor() {
     super({ key: "GameScene" });
   }
 
   create(): void {
-    // 边框
     const gfx = this.add.graphics();
     gfx.lineStyle(2, 0x666666);
     gfx.strokeRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-    // 左上角实验员信息
     this.add
       .text(12, 10, `🔬 实验员：${playerNickname}`, {
-        fontSize: "13px",
-        color: "#7dd3fc",
+        fontSize: "13px", color: "#7dd3fc",
         fontFamily: "PingFang SC, Microsoft YaHei, sans-serif",
       });
 
-    // 子弹组
     this.bulletGroup = this.add.group();
-
-    // 玩家
     this.player = new Player(this, GAME_WIDTH / 2, GAME_HEIGHT / 2, this.bulletGroup);
 
-    // 鼠标点击 → 攻击
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+      if (this.isGameFrozen) return;
       const bullet = this.player.tryAttack(pointer.x, pointer.y, this.time.now);
       if (bullet) {
+        bullet.tryVanish(this.bulletVanishChance);
         this.bullets.push(bullet);
       }
     });
 
-    // HP / EXP 条背景
     this.hpBarBg = this.add.graphics();
     this.expBarBg = this.add.graphics();
     this.hpBarFill = this.add.graphics();
     this.expBarFill = this.add.graphics();
 
-    // 剩余敌人计数
-    this.enemyCountText = this.add
-      .text(12, 34, "", {
-        fontSize: "13px",
-        color: "#e74c3c",
+    this.levelText = this.add
+      .text(12, 50, "", {
+        fontSize: "13px", color: "#f1c40f",
         fontFamily: "PingFang SC, Microsoft YaHei, sans-serif",
       });
 
-    // 操作提示
+    this.enemyCountText = this.add
+      .text(12, 34, "", {
+        fontSize: "13px", color: "#e74c3c",
+        fontFamily: "PingFang SC, Microsoft YaHei, sans-serif",
+      });
+
     this.infoText = this.add
       .text(GAME_WIDTH / 2, GAME_HEIGHT - 24, "WASD 移动  |  鼠标点击 攻击", {
-        fontSize: "12px",
-        color: "#666666",
-        align: "center",
+        fontSize: "12px", color: "#666666", align: "center",
         fontFamily: "PingFang SC, Microsoft YaHei, sans-serif",
       })
       .setOrigin(0.5);
 
-    // ---- 测试：刷一波敌人 ----
+    // 监听进化选择
+    window.addEventListener("choose-evolution", this.onEvolutionChosen);
+
     this.spawnWave();
   }
 
   update(_time: number, delta: number): void {
-    // 玩家移动
-    this.player.update(delta);
+    if (this.isGameFrozen) return;
 
-    // 子弹更新 + 越界销毁
+    // 玩家
+    this.player.update(delta, this.time.now);
+
+    // 自动走火
+    const autoBullet = this.player.tryAutoFire(this.time.now);
+    if (autoBullet) {
+      autoBullet.tryVanish(this.bulletVanishChance);
+      this.bullets.push(autoBullet);
+    }
+
+    // 子弹更新 + 越界 / 消失
     for (let i = this.bullets.length - 1; i >= 0; i--) {
       const b = this.bullets[i];
       b.update(delta);
-      if (b.isOutOfBounds()) {
+      if (b.isOutOfBounds() || b.vanished) {
         b.destroy();
         this.bullets.splice(i, 1);
       }
     }
 
-    // 敌人更新
+    // 敌人更新 + 碰撞
     for (const enemy of this.enemies) {
       if (!enemy.alive) continue;
       enemy.update(delta, this.player.x, this.player.y);
 
-      // 敌人 vs 玩家 碰撞
       if (
         enemy.collidesWith(this.player.x, this.player.y, this.player.radius * this.player.sizeMultiplier) &&
         enemy.canAttack(this.time.now)
       ) {
         enemy.markAttacked(this.time.now);
-        this.player.hp -= enemy.damage;
-        if (this.player.hp <= 0) {
-          this.player.hp = 0;
+        const dodged = this.player.takeDamage(enemy.damage);
+        // dodged 时不扣血（takeDamage 内部处理）
+        if (!dodged && this.player.hp <= 0) {
           this.onPlayerDeath();
         }
       }
     }
 
-    // 子弹 vs 敌人 碰撞检测
     this.checkBulletEnemyCollisions();
-
-    // 清理死亡敌人
     this.cleanupDeadEnemies();
-
-    // 绘制 HUD
     this.drawHUD();
+
+    // 升级触发
+    if (this.levelUpQueue > 0) {
+      this.levelUpQueue--;
+      this.triggerEvolutionPanel();
+    }
   }
 
   // -------------------------------------------------------
   // 刷怪
   // -------------------------------------------------------
   private spawnWave(): void {
-    // 测试波次：5 只普通 + 2 只快速
     this.spawnEnemies("normal", 5);
     this.spawnEnemies("fast", 2);
   }
@@ -150,31 +161,31 @@ export class GameScene extends Phaser.Scene {
   }
 
   // -------------------------------------------------------
-  // 子弹 × 敌人 碰撞
+  // 子弹 × 敌人
   // -------------------------------------------------------
   private checkBulletEnemyCollisions(): void {
     for (let bi = this.bullets.length - 1; bi >= 0; bi--) {
       const bullet = this.bullets[bi];
-      let bulletHit = false;
+      if (!bullet.sprite.active) continue;
 
       for (const enemy of this.enemies) {
         if (!enemy.alive) continue;
-        if (!bullet.sprite.active) continue;
 
         if (enemy.collidesWith(bullet.x, bullet.y, bullet.radius)) {
-          const dead = enemy.takeDamage(this.player.damage);
+          const dmg = this.player.rollCrit();
+          const dead = enemy.takeDamage(dmg);
           bullet.destroy();
           this.bullets.splice(bi, 1);
-          bulletHit = true;
 
           if (dead) {
-            this.player.gainExp(enemy.expReward);
+            const leveledUp = this.player.gainExp(enemy.expReward);
+            if (leveledUp) {
+              this.levelUpQueue++;
+            }
           }
-          break; // 一颗子弹只命中一个敌人
+          break;
         }
       }
-
-      if (bulletHit) continue;
     }
   }
 
@@ -191,22 +202,86 @@ export class GameScene extends Phaser.Scene {
   }
 
   // -------------------------------------------------------
+  // 进化面板
+  // -------------------------------------------------------
+  private triggerEvolutionPanel(): void {
+    this.isGameFrozen = true;
+    const options = EvolutionSystem.pickThree();
+
+    window.dispatchEvent(
+      new CustomEvent("show-evolution", { detail: { options } }),
+    );
+  }
+
+  private onEvolutionChosen = ((e: Event) => {
+    const detail = (e as CustomEvent).detail as { id: string };
+    const option = ALL_EVOLUTIONS.find((o) => o.id === detail.id);
+    if (!option) return;
+
+    // 特殊处理记忆罐头 & 混沌培养液
+    let resolvedOption = { ...option };
+    if (option.id === "memory" && this.player.evolutionLog.length > 0) {
+      const prev = this.player.evolutionLog[this.player.evolutionLog.length - 1];
+      resolvedOption = {
+        ...option,
+        buff: { ...prev.buff },
+        debuff: {
+          ...prev.debuff,
+          // 副作用翻倍（简化处理：再叠加一次）
+        },
+        visualParts: [...option.visualParts],
+      };
+      // 副作用翻倍：再应用一次 debuff
+    }
+    if (option.id === "chaos") {
+      const pool = ALL_EVOLUTIONS.filter(
+        (o) => o.id !== "chaos" && o.id !== "memory",
+      );
+      const rnd = pool[Math.floor(Math.random() * pool.length)];
+      resolvedOption = {
+        ...option,
+        buff: { ...rnd.buff },
+        debuff: { ...rnd.debuff },
+        visualParts: [...option.visualParts, ...rnd.visualParts],
+      };
+    }
+
+    this.player.applyEvolution(resolvedOption);
+
+    // 更新 bulletVanishChance
+    if (resolvedOption.debuff.bulletVanish) {
+      this.bulletVanishChance += resolvedOption.debuff.bulletVanish;
+    }
+    // memory 副作用翻倍
+    if (option.id === "memory" && this.player.evolutionLog.length >= 2) {
+      const prev = this.player.evolutionLog[this.player.evolutionLog.length - 2];
+      this.player.applyEvolution({
+        id: "memory_extra",
+        name: "记忆罐头（翻倍）",
+        type: "experiment",
+        buff: {},
+        debuff: { ...prev.debuff },
+        visualParts: [],
+      });
+    }
+
+    window.dispatchEvent(new CustomEvent("hide-evolution"));
+    this.isGameFrozen = false;
+  }).bind(this);
+
+  // -------------------------------------------------------
   // 玩家死亡
   // -------------------------------------------------------
   private onPlayerDeath(): void {
-    // MVP 阶段：弹出提示文字，禁止操作
+    this.isGameFrozen = true;
     this.add
       .text(GAME_WIDTH / 2, GAME_HEIGHT / 2, "你被击败了！\n按 F5 重新挑战", {
-        fontSize: "26px",
-        color: "#e74c3c",
-        align: "center",
+        fontSize: "26px", color: "#e74c3c", align: "center",
         fontFamily: "PingFang SC, Microsoft YaHei, sans-serif",
         backgroundColor: "rgba(0,0,0,0.7)",
         padding: { x: 24, y: 16 },
       })
       .setOrigin(0.5);
-
-    // 禁用输入
     this.input.off("pointerdown");
   }
 
@@ -218,36 +293,36 @@ export class GameScene extends Phaser.Scene {
     const barW = 160;
     const barH = 14;
 
-    // HP 背景
     this.hpBarBg.clear();
     this.hpBarBg.fillStyle(0x333333);
     this.hpBarBg.fillRect(barX, 14, barW, barH);
 
-    // HP 填充
     this.hpBarFill.clear();
     const hpRatio = Phaser.Math.Clamp(this.player.hp / this.player.maxHp, 0, 1);
     this.hpBarFill.fillStyle(0xe74c3c);
     this.hpBarFill.fillRect(barX, 14, barW * hpRatio, barH);
 
-    // EXP 背景
     this.expBarBg.clear();
     this.expBarBg.fillStyle(0x333333);
     this.expBarBg.fillRect(barX, 34, barW, barH);
 
-    // EXP 填充
     this.expBarFill.clear();
     const expRatio = Phaser.Math.Clamp(this.player.exp / this.player.expToNext, 0, 1);
     this.expBarFill.fillStyle(0xf1c40f);
     this.expBarFill.fillRect(barX, 34, barW * expRatio, barH);
 
-    // 剩余敌人
     const aliveCount = this.enemies.filter((e) => e.alive).length;
     this.enemyCountText.setText(`👾 剩余敌人：${aliveCount}`);
 
-    // 底栏信息
+    // 已获得部件
+    const partNames = this.player.visualParts.length
+      ? this.player.visualParts.slice(-3).join(" ")
+      : "";
+    this.levelText.setText(`Lv.${this.player.level}  ${partNames}`);
+
     if (this.infoText) {
       this.infoText.setText(
-        `WASD 移动  |  鼠标点击 攻击  |  Lv.${this.player.level}  HP:${this.player.hp}  EXP:${this.player.exp}/${this.player.expToNext}`,
+        `WASD 移动  |  鼠标点击 攻击  |  HP:${this.player.hp}  EXP:${this.player.exp}/${this.player.expToNext}`,
       );
     }
   }

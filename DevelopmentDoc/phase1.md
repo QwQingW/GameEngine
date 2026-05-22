@@ -421,9 +421,9 @@ const LEVEL_CONFIG = [
 - [x] 创建基础目录结构
 - [x] 写一个空的 Phaser GameScene，能看到灰色背景
 
-### 第 2 步：登录页 → 进入游戏（0.5 小时）
-- [ ] 写 login-screen DOM
-- [ ] 点击按钮隐藏 login，显示 game-container，启动 Phaser
+### ✅ 第 2 步：登录页 → 进入游戏（0.5 小时）
+- [x] 写 login-screen DOM
+- [x] 点击按钮隐藏 login，显示 game-container，启动 Phaser
 
 ### 第 3 步：玩家移动 + 攻击（1.5 小时）
 - [ ] Player 类：WASD 移动、鼠标点击攻击、HP、经验

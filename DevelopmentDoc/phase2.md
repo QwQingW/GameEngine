@@ -208,18 +208,22 @@ CREATE UNIQUE INDEX idx_save_slots ON save_slots(player_id, slot_index);
 
 ### 第 5 步：通关自动存档（0.5 小时）
 
-- [ ] 5.1 在 `startLevel()` 中调用 `autoSave()` — 每进入新关卡自动存一次
-- [ ] 5.2 `autoSave()` 内部调用 `saveGame(currentSlotId, currentLevel, snapshotPlayerData())`
-- [ ] 5.3 静默失败 — 自动存档出错不弹提示，不打断游戏
+- [x] 5.1 在 `startLevel()` 中调用 `autoSave()` — 每进入新关卡自动存一次 ✅
+- [x] 5.2 `autoSave()` 内部调用 `saveGame(currentSlotId, currentLevel, snapshotPlayerData())` ✅
+- [x] 5.3 静默失败 — 自动存档出错不弹提示，不打断游戏 ✅
+
+> ✅ 第 5 步全部完成
 
 ### 第 6 步：从存档恢复游戏（1 小时）
 
-- [ ] 6.1 槽位页「继续」→ `loadSave(slotId)` 拿到存档数据
-- [ ] 6.2 创建 Phaser Game 时将存档数据通过 `window.__saveData` 传入 GameScene
-- [ ] 6.3 `GameScene.create()` 检测存档数据 → `restoreFromSave(data)` 分支
-- [ ] 6.4 `restoreFromSave` 中还原 Player 全部属性（hp/exp/level/...）
-- [ ] 6.5 重建 visualParts 视觉部件（火焰光环、肌肉手臂等绘制逻辑）
-- [ ] 6.6 `startLevel(data.level)` 从对应关卡恢复
+- [x] 6.1 槽位页「继续」→ `loadSave(slotId)` 拿到存档数据 ✅
+- [x] 6.2 创建 Phaser Game 时将存档数据通过 `window.__saveData` 传入 GameScene ✅
+- [x] 6.3 `GameScene.create()` 检测存档数据 → `restoreFromData(data)` 分支 ✅
+- [x] 6.4 `restoreFromData` 中还原 Player 全部属性（hp/exp/level/...） ✅
+- [x] 6.5 重建 visualParts 视觉部件（火焰光环、肌肉手臂等绘制逻辑） ✅
+- [x] 6.6 `startLevel(data.level)` 从对应关卡恢复 ✅
+
+> ✅ 第 6 步全部完成（之前修复存档 bug 时已实现）
 
 ### 第 7 步：联调 + 错误处理（0.5 小时）
 
@@ -233,14 +237,14 @@ CREATE UNIQUE INDEX idx_save_slots ON save_slots(player_id, slot_index);
 ## 6. 总进度追踪
 
 ```
-Phase 2 全局进度: [▰▰▰▰▱▱▱] 4/7  (暂停+ESC存档已完成)
+Phase 2 全局进度: [▰▰▰▰▰▰▱] 6/7  (存档恢复已完成)
 
 第1步 搭建 Supabase + 基础脚手架  [▰▰▰▰▰▰▰▰] 8/8 ✅ 完成
 第2步 封装完整 API 层            [▰▰▰▰▰▰▰▰] 7/7 ✅ 完成
 第3步 登录/注册 + 存档槽位页      [▰▰▰▰▰▰▰▰] 8/8 ✅ 完成
 第4步 暂停 + ESC + 保存退出       [▰▰▰▰▰▰▰▰] 6/6 ✅ 完成
-第5步 通关自动存档                [········] 0/3
-第6步 从存档恢复                  [········] 0/6
+第5步 通关自动存档                [▰▰▰▰▰▰▰▰] 3/3 ✅ 完成
+第6步 从存档恢复                  [▰▰▰▰▰▰▰▰] 6/6 ✅ 完成
 第7步 联调 + 错误处理             [········] 0/4
 ```
 

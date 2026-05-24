@@ -175,6 +175,9 @@ export class GameScene extends Phaser.Scene {
     this.evolutionChosenThisLevel = false;
     this.levelTransitioning = true;
 
+    // 通关自动存档
+    this.autoSave();
+
     const cfg = LEVEL_CONFIGS[levelIndex];
 
     // 显示关卡横幅
@@ -487,6 +490,17 @@ export class GameScene extends Phaser.Scene {
     }
 
     window.dispatchEvent(new CustomEvent("save-and-quit"));
+  }
+
+  /** 通关自动存档 — 静默失败，不打断游戏 */
+  private autoSave(): void {
+    const slot = currentSlot;
+    if (!slot) return;
+
+    const data = this.snapshotPlayerData();
+    saveGame(slot.id, this.currentLevel, data).catch(() => {
+      // 静默失败
+    });
   }
 
   // -------------------------------------------------------

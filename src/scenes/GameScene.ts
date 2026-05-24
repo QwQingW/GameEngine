@@ -1,11 +1,12 @@
 import Phaser from "phaser";
 import { GAME_WIDTH, GAME_HEIGHT, LEVEL_CONFIGS, TOTAL_LEVELS, EnemyType } from "../config";
-import { playerNickname } from "../main";
+import { playerNickname, currentSlot } from "../main";
 import { Player } from "../entities/Player";
 import { Bullet } from "../entities/Bullet";
 import { Enemy } from "../entities/Enemy";
 import { EvolutionSystem } from "../systems/EvolutionSystem";
 import { ALL_EVOLUTIONS } from "../data/evolutions";
+import { saveGame } from "../api/supabase";
 
 export class GameScene extends Phaser.Scene {
   private player!: Player;
@@ -34,8 +35,11 @@ export class GameScene extends Phaser.Scene {
   private bossHPBarFill!: Phaser.GameObjects.Graphics;
 
   private isGameFrozen = false;
+  private isPaused = false;
   private bulletVanishChance = 0;
   private levelUpQueue = 0;
+  private _boundResume: (() => void) | null = null;
+  private _boundSaveQuit: (() => Promise<void>) | null = null;
 
   // 关卡进度
   private currentLevel = 0; // 0-based index
@@ -60,14 +64,46 @@ export class GameScene extends Phaser.Scene {
     this.bulletGroup = this.add.group();
     this.player = new Player(this, GAME_WIDTH / 2, GAME_HEIGHT / 2, this.bulletGroup);
 
+    // ---- 检查是否有存档需要恢复 ----
+    const saveData = (window as any).__saveData as import("../api/supabase").SaveSlot | undefined;
+    let startingLevel = 0;
+
+    if (saveData && saveData.player_data && Object.keys(saveData.player_data as Record<string, unknown>).length > 0) {
+      const pd = saveData.player_data as Record<string, unknown>;
+      this.player.restoreFromData(pd);
+      if (typeof pd.bulletVanishChance === "number") {
+        this.bulletVanishChance = pd.bulletVanishChance;
+      }
+      startingLevel = saveData.level;
+    }
+
+    // 消费标记，防止重复恢复
+    delete (window as any).__saveData;
+    // ---- 恢复结束 ----
+
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-      if (this.isGameFrozen) return;
+      if (this.isGameFrozen || this.isPaused) return;
       const bullet = this.player.tryAttack(pointer.x, pointer.y, this.time.now);
       if (bullet) {
         bullet.tryVanish(this.bulletVanishChance);
         this.bullets.push(bullet);
       }
     });
+
+    // ESC 暂停
+    this.input.keyboard?.on("keydown-ESC", () => {
+      if (this.isPaused) {
+        this.resumeGame();
+      } else {
+        this.togglePause();
+      }
+    });
+
+    // 暂停面板按钮（绑定到实例方法，避免匿名函数泄漏）
+    this._boundResume = () => this.resumeGame();
+    this._boundSaveQuit = () => this.handleSaveAndQuit();
+    document.getElementById("btn-resume")?.addEventListener("click", this._boundResume);
+    document.getElementById("btn-save-quit")?.addEventListener("click", this._boundSaveQuit);
 
     this.hpBarBg = this.add.graphics();
     this.expBarBg = this.add.graphics();
@@ -100,17 +136,34 @@ export class GameScene extends Phaser.Scene {
       });
 
     this.infoText = this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT - 24, "WASD 移动  |  鼠标点击 攻击", {
+      .text(GAME_WIDTH / 2, GAME_HEIGHT - 24, "WASD 移动  |  鼠标点击 攻击  |  按ESC暂停", {
         fontSize: "12px", color: "#666666", align: "center",
         fontFamily: "PingFang SC, Microsoft YaHei, sans-serif",
       })
       .setOrigin(0.5);
 
-    // 监听进化选择
+    // 监听进化选择（先移除旧 Scene 残留的 handler，防止泄漏）
+    const oldHandler = (window as any).__evoHandler as ((e: Event) => void) | undefined;
+    if (oldHandler) {
+      window.removeEventListener("choose-evolution", oldHandler);
+    }
+    (window as any).__evoHandler = this.onEvolutionChosen;
     window.addEventListener("choose-evolution", this.onEvolutionChosen);
 
-    // 启动第 1 关
-    this.startLevel(0);
+    // Scene 销毁时清理
+    this.events.on("shutdown", () => {
+      window.removeEventListener("choose-evolution", this.onEvolutionChosen);
+      (window as any).__evoHandler = undefined;
+      if (this._boundResume) {
+        document.getElementById("btn-resume")?.removeEventListener("click", this._boundResume);
+      }
+      if (this._boundSaveQuit) {
+        document.getElementById("btn-save-quit")?.removeEventListener("click", this._boundSaveQuit);
+      }
+    });
+
+    // 启动关卡（可能是恢复的关卡）
+    this.startLevel(startingLevel);
   }
 
   // ========================================================
@@ -371,6 +424,72 @@ export class GameScene extends Phaser.Scene {
   }).bind(this);
 
   // -------------------------------------------------------
+  // 暂停 / 存档
+  // -------------------------------------------------------
+  private togglePause(): void {
+    if (this.isGameFrozen) return; // 进化面板中不让暂停
+    this.isPaused = true;
+    this.scene.pause();
+    document.getElementById("pause-screen")?.classList.add("show");
+  }
+
+  private resumeGame(): void {
+    this.isPaused = false;
+    document.getElementById("pause-screen")?.classList.remove("show");
+    this.scene.resume();
+  }
+
+  /** 将 Player 的全部状态打成可序列化对象 */
+  private snapshotPlayerData(): Record<string, unknown> {
+    const p = this.player;
+    return {
+      level: p.level,
+      hp: p.hp,
+      maxHp: p.maxHp,
+      exp: p.exp,
+      expToNext: p.expToNext,
+      damage: p.damage,
+      speed: p.speed,
+      attackCooldown: p.attackCooldown,
+      sizeMultiplier: p.sizeMultiplier,
+      dodgeChance: p.dodgeChance,
+      critChance: p.critChance,
+      critMultiplier: p.critMultiplier,
+      bulletSpeedMultiplier: p.bulletSpeedMultiplier,
+      hasAutoFire: p.hasAutoFire,
+      stunInterval: p.stunInterval,
+      visualParts: [...p.visualParts],
+      evolutionLog: p.evolutionLog.map((ev) => ({
+        id: ev.id,
+        name: ev.name,
+        type: ev.type,
+        buff: ev.buff,
+        debuff: ev.debuff,
+      })),
+      // 副作用
+      bulletVanishChance: this.bulletVanishChance,
+    };
+  }
+
+  private async handleSaveAndQuit(): Promise<void> {
+    const slot = currentSlot;
+    if (!slot) {
+      // 无存档槽位，回主菜单
+      window.dispatchEvent(new CustomEvent("save-and-quit"));
+      return;
+    }
+
+    try {
+      const data = this.snapshotPlayerData();
+      await saveGame(slot.id, this.currentLevel, data);
+    } catch {
+      // 静默失败，仍然退出
+    }
+
+    window.dispatchEvent(new CustomEvent("save-and-quit"));
+  }
+
+  // -------------------------------------------------------
   // 玩家死亡
   // -------------------------------------------------------
   private onPlayerDeath(): void {
@@ -458,7 +577,7 @@ export class GameScene extends Phaser.Scene {
 
     if (this.infoText) {
       this.infoText.setText(
-        `WASD 移动  |  鼠标点击 攻击  |  HP:${this.player.hp}  EXP:${this.player.exp}/${this.player.expToNext}`,
+        `WASD 移动  |  鼠标点击 攻击  |  按ESC暂停  |  HP:${this.player.hp}  EXP:${this.player.exp}/${this.player.expToNext}`,
       );
     }
   }

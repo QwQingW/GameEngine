@@ -120,6 +120,8 @@ function showSlotsScreen(): void {
 
 function showGame(): void {
   hideAll();
+  // 确保暂停覆盖层不残留
+  document.getElementById("pause-screen")?.classList.remove("show");
   gameScreen.style.display = "flex";
 }
 
@@ -266,14 +268,11 @@ async function renderSaveSlots(): Promise<void> {
         if (target.classList.contains("slot-delete")) return; // 不触发卡片点击
         startFromSlot(slot);
       });
-      // 删除按钮
+      // 删除按钮 → 弹出游戏内确认弹窗
       const delBtn = card.querySelector(".slot-delete") as HTMLButtonElement;
-      delBtn.addEventListener("click", async (e) => {
+      delBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        if (!confirm(`确定要删除实验体「${slot.variant_name}」的存档吗？此操作不可撤销。`))
-          return;
-        await deleteSlot(slot.id);
-        renderSaveSlots(); // 刷新
+        showDeleteConfirm(slot.id, slot.variant_name);
       });
     }
 
@@ -482,6 +481,50 @@ createVariantName.addEventListener("keydown", (e) => {
 
 // 结算页「回到档案」
 btnRestart.addEventListener("click", () => {
+  destroyGame();
+  showSlotsScreen();
+});
+
+// ----------------------------------------------------------------
+// 删除确认弹窗
+// ----------------------------------------------------------------
+let pendingDeleteSlotId: string | null = null;
+const deleteConfirmOverlay = document.getElementById("delete-confirm-overlay")!;
+const deleteConfirmMsg = document.getElementById("delete-confirm-msg")!;
+const btnConfirmNo = document.getElementById("btn-confirm-no")!;
+const btnConfirmYes = document.getElementById("btn-confirm-yes")!;
+
+function showDeleteConfirm(slotId: string, variantName: string): void {
+  pendingDeleteSlotId = slotId;
+  deleteConfirmMsg.textContent = `确定要删除实验体「${variantName}」的存档吗？此操作不可撤销。`;
+  deleteConfirmOverlay.classList.add("show");
+}
+
+function hideDeleteConfirm(): void {
+  pendingDeleteSlotId = null;
+  deleteConfirmOverlay.classList.remove("show");
+}
+
+btnConfirmNo.addEventListener("click", hideDeleteConfirm);
+
+btnConfirmYes.addEventListener("click", async () => {
+  if (pendingDeleteSlotId === null) return;
+  const slotId = pendingDeleteSlotId;
+  hideDeleteConfirm();
+  await deleteSlot(slotId);
+  renderSaveSlots();
+});
+
+// 点击遮罩关闭
+deleteConfirmOverlay.addEventListener("click", (e) => {
+  if (e.target === deleteConfirmOverlay) {
+    hideDeleteConfirm();
+  }
+});
+
+// 暂停页面「保存并退出」事件
+window.addEventListener("save-and-quit", () => {
+  document.getElementById("pause-screen")?.classList.remove("show");
   destroyGame();
   showSlotsScreen();
 });

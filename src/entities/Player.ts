@@ -372,6 +372,32 @@ export class Player {
     }
   }
 
+  /** 从存档数据恢复 Player 状态 */
+  restoreFromData(data: Record<string, unknown>): void {
+    if (typeof data.level === "number") this.level = data.level;
+    if (typeof data.hp === "number") { this.hp = data.hp; this.maxHp = data.hp; }
+    if (typeof data.maxHp === "number") this.maxHp = data.maxHp;
+    if (typeof data.exp === "number") this.exp = data.exp;
+    if (typeof data.expToNext === "number") this.expToNext = data.expToNext;
+    if (typeof data.damage === "number") this.damage = data.damage;
+    if (typeof data.speed === "number") this.speed = data.speed;
+    if (typeof data.attackCooldown === "number") this.attackCooldown = data.attackCooldown;
+    if (typeof data.sizeMultiplier === "number") this.sizeMultiplier = data.sizeMultiplier;
+    if (typeof data.dodgeChance === "number") this.dodgeChance = data.dodgeChance;
+    if (typeof data.critChance === "number") this.critChance = data.critChance;
+    if (typeof data.critMultiplier === "number") this.critMultiplier = data.critMultiplier;
+    if (typeof data.bulletSpeedMultiplier === "number") this.bulletSpeedMultiplier = data.bulletSpeedMultiplier;
+    if (typeof data.hasAutoFire === "boolean") this.hasAutoFire = data.hasAutoFire;
+    if (typeof data.stunInterval === "number") this.stunInterval = data.stunInterval;
+
+    if (Array.isArray(data.visualParts)) {
+      this.visualParts = data.visualParts as string[];
+    }
+    if (Array.isArray(data.evolutionLog)) {
+      this.evolutionLog = data.evolutionLog as Player["evolutionLog"];
+    }
+  }
+
   destroy(): void {
     this.bodyGfx.destroy();
   }

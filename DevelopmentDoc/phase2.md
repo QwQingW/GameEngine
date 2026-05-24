@@ -197,12 +197,14 @@ CREATE UNIQUE INDEX idx_save_slots ON save_slots(player_id, slot_index);
 
 ### 第 4 步：游戏内暂停 + ESC 键（1.5 小时）
 
-- [ ] 4.1 `GameScene.ts` 注册 ESC 键监听 → `togglePause()`
-- [ ] 4.2 暂停时 `this.scene.pause()` 冻结 Phaser 所有更新
-- [ ] 4.3 `index.html` 新增 `#pause-screen` DOM 覆盖层（「继续游戏」「保存退出」两按钮）
-- [ ] 4.4 实现 `snapshotPlayerData()` 将 Player 全部状态打成序列化对象
-- [ ] 4.5 「保存并退出」→ `saveGame(slotId, ...)` → 销毁 Phaser → 回槽位页
-- [ ] 4.6 「继续游戏」→ 隐藏覆盖层，`this.scene.resume()`
+- [x] 4.1 `GameScene.ts` 注册 ESC 键监听 → `togglePause()` ✅
+- [x] 4.2 暂停时 `this.scene.pause()` 冻结 Phaser 所有更新 ✅
+- [x] 4.3 `index.html` 新增 `#pause-screen` DOM 覆盖层（「继续游戏」「保存退出」两按钮）✅
+- [x] 4.4 实现 `snapshotPlayerData()` 将 Player 全部状态打成序列化对象 ✅
+- [x] 4.5 「保存并退出」→ `saveGame(slotId, ...)` → 销毁 Phaser → 回槽位页 ✅
+- [x] 4.6 「继续游戏」→ 隐藏覆盖层，`this.scene.resume()` ✅
+
+> ✅ 第 4 步全部完成
 
 ### 第 5 步：通关自动存档（0.5 小时）
 
@@ -231,12 +233,12 @@ CREATE UNIQUE INDEX idx_save_slots ON save_slots(player_id, slot_index);
 ## 6. 总进度追踪
 
 ```
-Phase 2 全局进度: [▰▰▰▱▱▱▱] 3/7  (v2 双层模型已联通)
+Phase 2 全局进度: [▰▰▰▰▱▱▱] 4/7  (暂停+ESC存档已完成)
 
 第1步 搭建 Supabase + 基础脚手架  [▰▰▰▰▰▰▰▰] 8/8 ✅ 完成
 第2步 封装完整 API 层            [▰▰▰▰▰▰▰▰] 7/7 ✅ 完成
 第3步 登录/注册 + 存档槽位页      [▰▰▰▰▰▰▰▰] 8/8 ✅ 完成
-第4步 暂停 + ESC + 保存退出       [········] 0/6
+第4步 暂停 + ESC + 保存退出       [▰▰▰▰▰▰▰▰] 6/6 ✅ 完成
 第5步 通关自动存档                [········] 0/3
 第6步 从存档恢复                  [········] 0/6
 第7步 联调 + 错误处理             [········] 0/4

@@ -12,39 +12,200 @@
       overflow: hidden;
     }
 
-    /* ====== 登录页 ====== */
-    #login-screen {
+    /* ====== 登录/注册页 ====== */
+    #auth-screen {
       width: 100vw; height: 100vh;
       display: flex; justify-content: center; align-items: center;
       background: radial-gradient(ellipse at center, #16213e 0%, #0a0a1a 100%);
     }
-    .login-panel {
+    .auth-panel {
       text-align: center;
       background: rgba(255,255,255,0.05);
       border: 1px solid rgba(100,200,255,0.2);
       border-radius: 16px;
-      padding: 48px 40px 36px; min-width: 380px;
+      padding: 36px 40px 28px; min-width: 380px;
       backdrop-filter: blur(4px);
     }
-    .login-panel h1 { font-size: 28px; color: #7dd3fc; margin-bottom: 6px; letter-spacing: 2px; }
-    .login-panel .subtitle { font-size: 13px; color: #64748b; margin-bottom: 32px; }
-    .login-panel label { display: block; font-size: 14px; color: #94a3b8; margin-bottom: 8px; text-align: left; }
-    .login-panel input {
+    .auth-panel h1 { font-size: 28px; color: #7dd3fc; margin-bottom: 4px; letter-spacing: 2px; }
+    .auth-panel .subtitle { font-size: 13px; color: #64748b; margin-bottom: 24px; }
+
+    /* tab 切换 */
+    .auth-tabs {
+      display: flex; gap: 0; margin-bottom: 20px;
+      border: 1px solid rgba(100,200,255,0.2); border-radius: 8px;
+      overflow: hidden;
+    }
+    .auth-tab {
+      flex: 1; padding: 8px 0; font-size: 15px; font-weight: 600;
+      cursor: pointer; border: none;
+      background: transparent; color: #64748b;
+      transition: background 0.2s, color 0.2s;
+    }
+    .auth-tab.active {
+      background: rgba(56,189,248,0.15); color: #38bdf8;
+    }
+    .auth-tab:not(.active):hover { color: #94a3b8; }
+
+    .auth-panel label { display: block; font-size: 14px; color: #94a3b8; margin-bottom: 8px; text-align: left; }
+    .auth-panel input {
       width: 100%; padding: 10px 14px; font-size: 16px;
       border: 1px solid rgba(100,200,255,0.3); border-radius: 8px;
       background: rgba(0,0,0,0.4); color: #e2e8f0; outline: none;
       transition: border-color 0.2s;
     }
-    .login-panel input:focus { border-color: #38bdf8; }
-    .login-panel button {
-      width: 100%; margin-top: 20px; padding: 12px 0; font-size: 17px; font-weight: 600;
+    .auth-panel input:focus { border-color: #38bdf8; }
+    .auth-panel button {
+      width: 100%; margin-top: 16px; padding: 12px 0; font-size: 17px; font-weight: 600;
       color: #0f172a; background: linear-gradient(135deg, #38bdf8, #818cf8);
       border: none; border-radius: 8px; cursor: pointer; letter-spacing: 1px;
       transition: opacity 0.2s, transform 0.1s;
     }
-    .login-panel button:hover { opacity: 0.9; }
-    .login-panel button:active { transform: scale(0.97); }
-    .login-panel .hint { margin-top: 14px; font-size: 12px; color: #475569; }
+    .auth-panel button:hover { opacity: 0.9; }
+    .auth-panel button:active { transform: scale(0.97); }
+    .auth-panel button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .auth-panel .hint { margin-top: 14px; font-size: 12px; color: #475569; }
+    .auth-panel .error-msg {
+      display: none; margin-top: 10px; font-size: 13px;
+      color: #f87171; min-height: 20px;
+    }
+    .auth-panel .error-msg.show { display: block; }
+
+    /* ====== 存档槽位页 ====== */
+    #slots-screen {
+      display: none;
+      width: 100vw; height: 100vh;
+      justify-content: center; align-items: center;
+      background: radial-gradient(ellipse at center, #16213e 0%, #0a0a1a 100%);
+    }
+    #slots-screen.show { display: flex; }
+    .slots-panel {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(100,200,255,0.2);
+      border-radius: 16px;
+      padding: 32px 40px 24px;
+      backdrop-filter: blur(4px);
+      min-width: 420px;
+      text-align: center;
+    }
+    .slots-panel h2 { font-size: 22px; color: #7dd3fc; margin-bottom: 2px; }
+    .slots-panel .slots-username { font-size: 14px; color: #94a3b8; margin-bottom: 20px; }
+    .slots-row {
+      display: flex; gap: 14px; justify-content: center; margin-bottom: 16px;
+    }
+    .slot-card {
+      width: 120px; height: 150px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(100,200,255,0.15);
+      border-radius: 12px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 8px; cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .slot-card:hover {
+      border-color: rgba(125,211,252,0.5);
+      background: rgba(125,211,252,0.08);
+    }
+    .slot-card .slot-empty-icon { font-size: 32px; color: #475569; }
+    .slot-card .slot-add-text { font-size: 12px; color: #64748b; }
+    .slot-card .slot-variant-name { font-size: 15px; color: #e2e8f0; font-weight: 600; }
+    .slot-card .slot-level { font-size: 12px; color: #7dd3fc; }
+    .slot-card .slot-delete {
+      font-size: 11px; color: #b91c1c; margin-top: 4px;
+      background: transparent; border: none; cursor: pointer;
+    }
+    .slot-card .slot-delete:hover { text-decoration: underline; }
+    .slots-logout {
+      margin-top: 8px; background: transparent; border: none;
+      color: #64748b; font-size: 13px; cursor: pointer;
+    }
+    .slots-logout:hover { color: #e2e8f0; }
+
+    /* ====== 变异体创建页 ====== */
+    #variant-create-screen {
+      display: none;
+      width: 100vw; height: 100vh;
+      justify-content: center; align-items: center;
+      background: radial-gradient(ellipse at center, #16213e 0%, #0a0a1a 100%);
+    }
+    #variant-create-screen.show { display: flex; }
+    .create-panel {
+      display: flex; gap: 28px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(100,200,255,0.2);
+      border-radius: 16px;
+      padding: 28px 32px 24px;
+      backdrop-filter: blur(4px);
+    }
+    .create-left {
+      display: flex; flex-direction: column;
+      align-items: center; gap: 14px;
+    }
+    .create-left canvas {
+      background: rgba(0,0,0,0.3);
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .create-left .create-name-label {
+      font-size: 13px; color: #94a3b8; align-self: flex-start;
+    }
+    .create-left input {
+      width: 180px; padding: 8px 12px; font-size: 15px;
+      border: 1px solid rgba(100,200,255,0.3); border-radius: 8px;
+      background: rgba(0,0,0,0.4); color: #e2e8f0; outline: none;
+      transition: border-color 0.2s;
+    }
+    .create-left input:focus { border-color: #38bdf8; }
+
+    .create-right {
+      display: flex; flex-direction: column;
+      min-width: 240px;
+    }
+    .create-right h3 {
+      font-size: 18px; color: #7dd3fc; margin-bottom: 4px;
+    }
+    .create-right .create-subtitle {
+      font-size: 12px; color: #64748b; margin-bottom: 18px;
+    }
+    .create-design-slots {
+      display: flex; flex-direction: column; gap: 10px;
+      flex: 1;
+    }
+    .create-design-slot {
+      flex: 1;
+      background: rgba(255,255,255,0.03);
+      border: 1px dashed rgba(100,200,255,0.15);
+      border-radius: 10px;
+      display: flex; align-items: center;
+      justify-content: center;
+      font-size: 13px; color: #475569;
+      min-height: 56px;
+    }
+    .create-actions {
+      display: flex; gap: 10px; margin-top: 14px;
+    }
+    .create-actions button {
+      flex: 1; padding: 10px 0; font-size: 15px; font-weight: 600;
+      border: none; border-radius: 8px; cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    .create-actions button:active { transform: scale(0.97); }
+    .create-actions button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-create-confirm {
+      color: #0f172a;
+      background: linear-gradient(135deg, #38bdf8, #818cf8);
+    }
+    .btn-create-cancel {
+      color: #94a3b8;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .btn-create-cancel:hover { color: #e2e8f0; }
+    .create-error {
+      display: none; margin-top: 8px; font-size: 12px;
+      color: #f87171; text-align: center;
+    }
+    .create-error.show { display: block; }
 
     /* ====== 游戏容器 ====== */
     #game-screen {
@@ -225,15 +386,60 @@
   </style>
 </head>
 <body>
-  <!-- 登录页 -->
-  <div id="login-screen">
-    <div class="login-panel">
+  <!-- 登录/注册页 -->
+  <div id="auth-screen">
+    <div class="auth-panel">
       <h1>🧬 变异吧！人类！</h1>
-      <p class="subtitle">AI 驱动的变异进化肉鸽 · 最小原型</p>
-      <label for="nickname">实验员代号</label>
-      <input id="nickname" type="text" maxlength="8" placeholder="请输入你的代号" autocomplete="off" />
-      <button id="btn-start">开 始 实 验</button>
+      <p class="subtitle" id="auth-subtitle">登录或注册一个账户</p>
+
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-tab="login">🔑 登录</button>
+        <button class="auth-tab" data-tab="register">🆕 注册</button>
+      </div>
+
+      <label for="auth-username">玩家用户名</label>
+      <input id="auth-username" type="text" maxlength="12" placeholder="输入你的用户名" autocomplete="off" />
+      <button id="btn-auth">登 录</button>
+      <p class="error-msg" id="auth-error"></p>
       <p class="hint">WASD 移动 · 鼠标点击攻击 · 击杀敌人进化</p>
+    </div>
+  </div>
+
+  <!-- 存档槽位页 -->
+  <div id="slots-screen">
+    <div class="slots-panel">
+      <h2>🧬 档案选择</h2>
+      <p class="slots-username">玩家：<span id="slots-username">---</span></p>
+      <div class="slots-row" id="slots-row"></div>
+      <button class="slots-logout" id="btn-slots-logout">退出登录</button>
+    </div>
+  </div>
+
+  <!-- 变异体创建页 -->
+  <div id="variant-create-screen">
+    <div class="create-panel">
+      <!-- 左侧：预览 + 命名 -->
+      <div class="create-left">
+        <canvas id="create-preview-canvas" width="160" height="180"></canvas>
+        <label class="create-name-label" for="create-variant-name">变异体命名</label>
+        <input id="create-variant-name" type="text" maxlength="12" placeholder="为变异体起名" autocomplete="off" />
+      </div>
+
+      <!-- 右侧：设计项（先留空） -->
+      <div class="create-right">
+        <h3>🧬 初始设计</h3>
+        <p class="create-subtitle">实验前的最后配置（开发中）</p>
+        <div class="create-design-slots">
+          <div class="create-design-slot">🔮 初始变异倾向（即将开放）</div>
+          <div class="create-design-slot">🛡️ 初始特长（即将开放）</div>
+          <div class="create-design-slot">🎨 外观选项（即将开放）</div>
+        </div>
+        <div class="create-actions">
+          <button class="btn-create-cancel" id="btn-create-cancel">返回</button>
+          <button class="btn-create-confirm" id="btn-create-confirm">🔬 开始实验</button>
+        </div>
+        <p class="create-error" id="create-error"></p>
+      </div>
     </div>
   </div>
 

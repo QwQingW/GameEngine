@@ -356,9 +356,23 @@ export class GameScene extends Phaser.Scene {
     this.isGameFrozen = true;
     const options = EvolutionSystem.pickThree();
 
-    window.dispatchEvent(
-      new CustomEvent("show-evolution", { detail: { options } }),
-    );
+    // 先显示"准备进化！"提示 1 秒，防止误触
+    const prepText = this.add
+      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2, "🧬 准备进化！", {
+        fontSize: "32px", color: "#7dd3fc", align: "center",
+        fontFamily: "PingFang SC, Microsoft YaHei, sans-serif",
+        backgroundColor: "rgba(0,0,0,0.85)",
+        padding: { x: 40, y: 20 },
+      })
+      .setOrigin(0.5)
+      .setDepth(100);
+
+    this.time.delayedCall(1000, () => {
+      prepText.destroy();
+      window.dispatchEvent(
+        new CustomEvent("show-evolution", { detail: { options } }),
+      );
+    });
   }
 
   private onEvolutionChosen = ((e: Event) => {

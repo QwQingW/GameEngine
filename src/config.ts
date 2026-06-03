@@ -12,10 +12,11 @@ export const WORLD_HEIGHT = 1254;
 
 // 关卡地图资源映射
 export const LEVEL_MAP: Record<number, { bgKey: string; bgPath: string }> = {
-  1: { bgKey: "ocean_bg", bgPath: "Materials/PrimordialOcean/background/ocean_background.png" },
-  // 后续关卡在此添加
-  2: { bgKey: "jungle_bg", bgPath: "" },
-  3: { bgKey: "city_bg", bgPath: "" },
+  1: { bgKey: "ocean_bg",    bgPath: "Materials/PrimordialOcean/background/ocean_background.png" },
+  2: { bgKey: "jungle_bg",   bgPath: "Materials/MutantJungle/background/jungle_background.png" },
+  3: { bgKey: "city_bg",     bgPath: "Materials/ContaminatedCity/background/city_background.png" },
+  4: { bgKey: "cyber_bg",    bgPath: "Materials/CyberNexus/background/cybercity_background.png" },
+  5: { bgKey: "lab_bg",      bgPath: "Materials/BioHazardLab/background/lab_background.png" },
 };
 
 export const PLAYER_SPEED = 200;
@@ -63,25 +64,42 @@ export interface LevelConfig {
 export const LEVEL_CONFIGS: LevelConfig[] = [
   {
     id: 1,
-    name: "基因培育室",
+    name: "原始海洋",
     enemies: [
       { type: "normal", count: 5 },
     ],
   },
   {
     id: 2,
-    name: "变异长廊",
+    name: "变异丛林",
     enemies: [
-      { type: "normal", count: 3 },
+      { type: "normal", count: 4 },
       { type: "fast", count: 3 },
     ],
   },
   {
     id: 3,
-    name: "最终实验场",
+    name: "污染城市",
     enemies: [
-      { type: "normal", count: 2 },
-      { type: "fast", count: 2 },
+      { type: "normal", count: 4 },
+      { type: "fast", count: 4 },
+    ],
+  },
+  {
+    id: 4,
+    name: "赛博枢纽",
+    enemies: [
+      { type: "normal", count: 3 },
+      { type: "fast", count: 5 },
+      { type: "boss", count: 1 },
+    ],
+  },
+  {
+    id: 5,
+    name: "生化实验室",
+    enemies: [
+      { type: "normal", count: 4 },
+      { type: "fast", count: 4 },
       { type: "boss", count: 1 },
     ],
   },

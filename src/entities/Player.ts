@@ -114,6 +114,13 @@ export class Player {
     this.drawBody();
   }
 
+  /** 设置玩家到指定位置（关卡切换时用） */
+  setPosition(x: number, y: number): void {
+    this.x = x;
+    this.y = y;
+    this.cameraTarget.setPosition(x, y);
+  }
+
   // -------------------------------------------------------
   // 移动
   // -------------------------------------------------------

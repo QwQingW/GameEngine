@@ -63,10 +63,12 @@ export class GameScene extends Phaser.Scene {
   }
 
   preload(): void {
-    // 加载当前关卡背景图
-    const mapCfg = LEVEL_MAP[1]; // 原始海洋
-    if (mapCfg && mapCfg.bgPath) {
-      this.load.image(mapCfg.bgKey, mapCfg.bgPath);
+    // 预加载所有关卡背景图
+    for (const key in LEVEL_MAP) {
+      const mapCfg = LEVEL_MAP[Number(key)];
+      if (mapCfg && mapCfg.bgPath) {
+        this.load.image(mapCfg.bgKey, mapCfg.bgPath);
+      }
     }
   }
 
@@ -75,21 +77,15 @@ export class GameScene extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
 
     // ---- 背景图（一张整图作为世界背景） ----
-    const mapCfg = LEVEL_MAP[1]; // 原始海洋
+    const mapCfg = LEVEL_MAP[1]; // 默认初始关卡背景
     if (mapCfg && mapCfg.bgPath) {
       this.bgImage = this.add.tileSprite(0, 0, WORLD_WIDTH, WORLD_HEIGHT, mapCfg.bgKey)
         .setOrigin(0, 0)
         .setDepth(-10);
     }
 
-    // ---- 世界边框（柔和的海洋蓝边界） ----
-    this.borderGfx = this.add.graphics();
-    // 外层柔光
-    this.borderGfx.lineStyle(6, 0x4488cc, 0.3);
-    this.borderGfx.strokeRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-    // 内层细线
-    this.borderGfx.lineStyle(1, 0x66aadd, 0.5);
-    this.borderGfx.strokeRect(2, 2, WORLD_WIDTH - 4, WORLD_HEIGHT - 4);
+    // ---- 世界边框 ----
+    this.borderGfx = this.add.graphics().setDepth(0);
 
     // ---- 摄像机设置 ----
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
@@ -245,6 +241,21 @@ export class GameScene extends Phaser.Scene {
     this.evolutionChosenThisLevel = false;
     this.levelTransitioning = true;
 
+    // 切换背景图
+    const mapCfg = LEVEL_MAP[levelIndex + 1]; // LEVEL_MAP key 从 1 开始
+    if (mapCfg && mapCfg.bgPath) {
+      this.bgImage.setTexture(mapCfg.bgKey);
+    }
+
+    // 人物回到世界中央，同时摄像机瞬间切到中央（不用 lerp 平滑）
+    this.player.setPosition(WORLD_WIDTH / 2, WORLD_HEIGHT / 2);
+    this.cameras.main.stopFollow();
+    this.cameras.main.centerOn(WORLD_WIDTH / 2, WORLD_HEIGHT / 2);
+    this.cameras.main.startFollow(this.player.cameraTarget, true, 0.08, 0.08);
+
+    // 更新世界边框颜色
+    this.drawBorder(levelIndex);
+
     // 通关自动存档
     this.autoSave();
 
@@ -258,6 +269,37 @@ export class GameScene extends Phaser.Scene {
       this.levelTransitioning = false;
       this.spawnWave(cfg);
     });
+  }
+
+  /** 根据关卡绘制对应的柔光边框 */
+  private drawBorder(levelIndex: number): void {
+    const borderColors: number[] = [
+      0x4488cc, // 第1关：海洋蓝
+      0x44aa44, // 第2关：丛林绿
+      0x666666, // 第3关：污染深灰
+      0x8844cc, // 第4关：赛博紫
+      0xaaaaaa, // 第5关：实验室浅灰
+    ];
+    const color = borderColors[levelIndex] ?? 0x4488cc;
+
+    this.borderGfx.clear();
+
+    // 多层柔光叠出渐变发散效果
+    // 最外层：极宽、极透明
+    this.borderGfx.lineStyle(16, color, 0.08);
+    this.borderGfx.strokeRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+
+    // 第二层
+    this.borderGfx.lineStyle(10, color, 0.15);
+    this.borderGfx.strokeRect(3, 3, WORLD_WIDTH - 6, WORLD_HEIGHT - 6);
+
+    // 第三层
+    this.borderGfx.lineStyle(5, color, 0.25);
+    this.borderGfx.strokeRect(5, 5, WORLD_WIDTH - 10, WORLD_HEIGHT - 10);
+
+    // 内层细线
+    this.borderGfx.lineStyle(1, color, 0.4);
+    this.borderGfx.strokeRect(7, 7, WORLD_WIDTH - 14, WORLD_HEIGHT - 14);
   }
 
   private showLevelBanner(text: string): void {

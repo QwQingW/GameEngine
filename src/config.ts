@@ -5,6 +5,19 @@ export type EnemyType = "normal" | "fast" | "boss";
 export const GAME_WIDTH = 800;
 export const GAME_HEIGHT = 600;
 
+// 世界地图尺寸（与背景图一致，一张整图作为背景）
+// 背景图 1254×1254，世界即为此尺寸
+export const WORLD_WIDTH = 1254;
+export const WORLD_HEIGHT = 1254;
+
+// 关卡地图资源映射
+export const LEVEL_MAP: Record<number, { bgKey: string; bgPath: string }> = {
+  1: { bgKey: "ocean_bg", bgPath: "Materials/PrimordialOcean/background/ocean_background.png" },
+  // 后续关卡在此添加
+  2: { bgKey: "jungle_bg", bgPath: "" },
+  3: { bgKey: "city_bg", bgPath: "" },
+};
+
 export const PLAYER_SPEED = 200;
 export const PLAYER_HP = 100;
 export const PLAYER_DAMAGE = 10;

@@ -3,6 +3,7 @@ import { GameScene } from "./scenes/GameScene";
 import { EvolutionOption, typeIcon, typeLabel } from "./data/evolutions";
 import { EvolutionSystem } from "./systems/EvolutionSystem";
 import { drawFinalForm, generateReport, PlayerSummary } from "./utils/report";
+import { GAME_WIDTH, GAME_HEIGHT, WORLD_WIDTH, WORLD_HEIGHT } from "./config";
 import {
   PlayerInfo,
   SaveSlot,
@@ -70,10 +71,15 @@ let game: Phaser.Game | null = null;
 function createGame(): void {
   const config: Phaser.Types.Core.GameConfig = {
     type: Phaser.AUTO,
-    width: 800,
-    height: 600,
+    width: GAME_WIDTH,
+    height: GAME_HEIGHT,
     parent: "game-container",
     backgroundColor: "#2d2d2d",
+    render: {
+      pixelArt: true,        // 像素风：禁用纹理平滑
+      antialias: false,
+      roundPixels: true,     // 避免像素抖动
+    },
     physics: {
       default: "arcade",
       arcade: { debug: false },

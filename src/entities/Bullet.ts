@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { BULLET_SPEED, BULLET_RADIUS } from "../config";
+import { BULLET_SPEED, BULLET_RADIUS, WORLD_WIDTH, WORLD_HEIGHT } from "../config";
 
 export class Bullet {
   public x: number;
@@ -31,9 +31,9 @@ export class Bullet {
     const margin = 50;
     return (
       this.x < -margin ||
-      this.x > 800 + margin ||
+      this.x > WORLD_WIDTH + margin ||
       this.y < -margin ||
-      this.y > 600 + margin
+      this.y > WORLD_HEIGHT + margin
     );
   }
 

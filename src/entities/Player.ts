@@ -6,6 +6,8 @@ import {
   PLAYER_ATTACK_COOLDOWN,
   PLAYER_RADIUS,
   EXP_TO_LEVEL,
+  WORLD_WIDTH,
+  WORLD_HEIGHT,
 } from "../config";
 import { Bullet } from "./Bullet";
 import { EvolutionOption } from "../data/evolutions";
@@ -45,6 +47,7 @@ export class Player {
 
   private bodyGfx: Phaser.GameObjects.Graphics;
   private scene: Phaser.Scene;
+  public cameraTarget: Phaser.GameObjects.Rectangle;
 
   private lastAttackTime = 0;
 
@@ -69,6 +72,9 @@ export class Player {
     this.bulletGroup = bulletGroup;
 
     this.bodyGfx = scene.add.graphics();
+    // 隐形摄像机跟随目标（1×1 透明矩形，供 startFollow 使用）
+    this.cameraTarget = scene.add.rectangle(x, y, 1, 1, 0x000000, 0)
+      .setVisible(false);
     this.drawBody();
 
     if (scene.input.keyboard) {
@@ -102,6 +108,9 @@ export class Player {
       this.doMovement(delta);
     }
 
+    // 更新摄像机跟随目标位置
+    this.cameraTarget.setPosition(this.x, this.y);
+
     this.drawBody();
   }
 
@@ -127,8 +136,8 @@ export class Player {
     this.y += dy * this.speed * dt;
 
     const r = this.radius * this.sizeMultiplier;
-    this.x = Phaser.Math.Clamp(this.x, r, 800 - r);
-    this.y = Phaser.Math.Clamp(this.y, r, 600 - r);
+    this.x = Phaser.Math.Clamp(this.x, r, WORLD_WIDTH - r);
+    this.y = Phaser.Math.Clamp(this.y, r, WORLD_HEIGHT - r);
   }
 
   // -------------------------------------------------------
@@ -400,5 +409,6 @@ export class Player {
 
   destroy(): void {
     this.bodyGfx.destroy();
+    this.cameraTarget.destroy();
   }
 }

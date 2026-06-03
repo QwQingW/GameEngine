@@ -1,5 +1,14 @@
 import Phaser from "phaser";
-import { GAME_WIDTH, GAME_HEIGHT, LEVEL_CONFIGS, TOTAL_LEVELS, EnemyType } from "../config";
+import {
+  GAME_WIDTH,
+  GAME_HEIGHT,
+  WORLD_WIDTH,
+  WORLD_HEIGHT,
+  LEVEL_CONFIGS,
+  TOTAL_LEVELS,
+  LEVEL_MAP,
+  EnemyType,
+} from "../config";
 import { playerNickname, currentSlot } from "../main";
 import { Player } from "../entities/Player";
 import { Bullet } from "../entities/Bullet";
@@ -16,10 +25,11 @@ export class GameScene extends Phaser.Scene {
   private enemies: Enemy[] = [];
 
   private spawnZones: { x: number; y: number }[] = [
-    { x: 120, y: 100 },  { x: 680, y: 100 },
-    { x: 120, y: 500 },  { x: 680, y: 500 },
-    { x: 400, y: 80 },   { x: 400, y: 520 },
-    { x: 80, y: 300 },   { x: 720, y: 300 },
+    // 敌人在世界边缘区域生成，远离玩家出生点
+    { x: 80, y: 80 },          { x: WORLD_WIDTH - 80, y: 80 },
+    { x: 80, y: WORLD_HEIGHT - 80 }, { x: WORLD_WIDTH - 80, y: WORLD_HEIGHT - 80 },
+    { x: WORLD_WIDTH / 2, y: 80 },   { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT - 80 },
+    { x: 80, y: WORLD_HEIGHT / 2 },  { x: WORLD_WIDTH - 80, y: WORLD_HEIGHT / 2 },
   ];
 
   // UI
@@ -33,6 +43,8 @@ export class GameScene extends Phaser.Scene {
   private levelBannerText!: Phaser.GameObjects.Text;
   private bossHPBarBg!: Phaser.GameObjects.Graphics;
   private bossHPBarFill!: Phaser.GameObjects.Graphics;
+  private bgImage!: Phaser.GameObjects.TileSprite;
+  private borderGfx!: Phaser.GameObjects.Graphics;
 
   private isGameFrozen = false;
   private isPaused = false;
@@ -50,19 +62,67 @@ export class GameScene extends Phaser.Scene {
     super({ key: "GameScene" });
   }
 
-  create(): void {
-    const gfx = this.add.graphics();
-    gfx.lineStyle(2, 0x666666);
-    gfx.strokeRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+  preload(): void {
+    // 加载当前关卡背景图
+    const mapCfg = LEVEL_MAP[1]; // 原始海洋
+    if (mapCfg && mapCfg.bgPath) {
+      this.load.image(mapCfg.bgKey, mapCfg.bgPath);
+    }
+  }
 
+  create(): void {
+    // ---- 世界边界 ----
+    this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+
+    // ---- 背景图（一张整图作为世界背景） ----
+    const mapCfg = LEVEL_MAP[1]; // 原始海洋
+    if (mapCfg && mapCfg.bgPath) {
+      this.bgImage = this.add.tileSprite(0, 0, WORLD_WIDTH, WORLD_HEIGHT, mapCfg.bgKey)
+        .setOrigin(0, 0)
+        .setDepth(-10);
+    }
+
+    // ---- 世界边框（柔和的海洋蓝边界） ----
+    this.borderGfx = this.add.graphics();
+    // 外层柔光
+    this.borderGfx.lineStyle(6, 0x4488cc, 0.3);
+    this.borderGfx.strokeRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+    // 内层细线
+    this.borderGfx.lineStyle(1, 0x66aadd, 0.5);
+    this.borderGfx.strokeRect(2, 2, WORLD_WIDTH - 4, WORLD_HEIGHT - 4);
+
+    // ---- 摄像机设置 ----
+    this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+
+    // ---- 玩家（出生在世界中心） ----
+    this.bulletGroup = this.add.group();
+    this.player = new Player(this, WORLD_WIDTH / 2, WORLD_HEIGHT / 2, this.bulletGroup);
+
+    // ---- 摄像机跟随玩家 ----
+    this.cameras.main.startFollow(
+      this.player.cameraTarget,
+      true,   // roundPixels
+      0.08,   // lerpX（平滑跟随，值越小越平滑）
+      0.08,   // lerpY
+    );
+
+    // ---- 场景装饰 ----
+    // 小地图指示器（左下角，固定到摄像机）
+    const minimapSize = 60;
+    const minimapGfx = this.add.graphics().setScrollFactor(0).setDepth(200);
+    minimapGfx.fillStyle(0x000000, 0.5);
+    minimapGfx.fillRect(10, GAME_HEIGHT - minimapSize - 10, minimapSize, minimapSize);
+    minimapGfx.lineStyle(1, 0xffffff, 0.4);
+    minimapGfx.strokeRect(10, GAME_HEIGHT - minimapSize - 10, minimapSize, minimapSize);
+
+    // ---- UI 文字（固定到摄像机，不随世界滚动） ----
     this.add
       .text(12, 10, `🔬 实验员：${playerNickname}`, {
         fontSize: "13px", color: "#7dd3fc",
         fontFamily: "PingFang SC, Microsoft YaHei, sans-serif",
-      });
-
-    this.bulletGroup = this.add.group();
-    this.player = new Player(this, GAME_WIDTH / 2, GAME_HEIGHT / 2, this.bulletGroup);
+      })
+      .setScrollFactor(0)
+      .setDepth(100);
 
     // ---- 检查是否有存档需要恢复 ----
     const saveData = (window as any).__saveData as import("../api/supabase").SaveSlot | undefined;
@@ -83,7 +143,9 @@ export class GameScene extends Phaser.Scene {
 
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
       if (this.isGameFrozen || this.isPaused) return;
-      const bullet = this.player.tryAttack(pointer.x, pointer.y, this.time.now);
+      // 将屏幕坐标转换为世界坐标
+      const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+      const bullet = this.player.tryAttack(worldPoint.x, worldPoint.y, this.time.now);
       if (bullet) {
         bullet.tryVanish(this.bulletVanishChance);
         this.bullets.push(bullet);
@@ -105,12 +167,12 @@ export class GameScene extends Phaser.Scene {
     document.getElementById("btn-resume")?.addEventListener("click", this._boundResume);
     document.getElementById("btn-save-quit")?.addEventListener("click", this._boundSaveQuit);
 
-    this.hpBarBg = this.add.graphics();
-    this.expBarBg = this.add.graphics();
-    this.hpBarFill = this.add.graphics();
-    this.expBarFill = this.add.graphics();
-    this.bossHPBarBg = this.add.graphics();
-    this.bossHPBarFill = this.add.graphics();
+    this.hpBarBg = this.add.graphics().setScrollFactor(0).setDepth(100);
+    this.expBarBg = this.add.graphics().setScrollFactor(0).setDepth(100);
+    this.hpBarFill = this.add.graphics().setScrollFactor(0).setDepth(100);
+    this.expBarFill = this.add.graphics().setScrollFactor(0).setDepth(100);
+    this.bossHPBarBg = this.add.graphics().setScrollFactor(0).setDepth(100);
+    this.bossHPBarFill = this.add.graphics().setScrollFactor(0).setDepth(100);
 
     // 关卡横幅文字
     this.levelBannerText = this.add
@@ -121,26 +183,34 @@ export class GameScene extends Phaser.Scene {
         padding: { x: 32, y: 16 },
       })
       .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(150)
       .setAlpha(0);
 
     this.enemyCountText = this.add
       .text(12, 34, "", {
         fontSize: "13px", color: "#e74c3c",
         fontFamily: "PingFang SC, Microsoft YaHei, sans-serif",
-      });
+      })
+      .setScrollFactor(0)
+      .setDepth(100);
 
     this.levelText = this.add
       .text(12, 50, "", {
         fontSize: "13px", color: "#f1c40f",
         fontFamily: "PingFang SC, Microsoft YaHei, sans-serif",
-      });
+      })
+      .setScrollFactor(0)
+      .setDepth(100);
 
     this.infoText = this.add
       .text(GAME_WIDTH / 2, GAME_HEIGHT - 24, "WASD 移动  |  鼠标点击 攻击  |  按ESC暂停", {
         fontSize: "12px", color: "#666666", align: "center",
         fontFamily: "PingFang SC, Microsoft YaHei, sans-serif",
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(100);
 
     // 监听进化选择（先移除旧 Scene 残留的 handler，防止泄漏）
     const oldHandler = (window as any).__evoHandler as ((e: Event) => void) | undefined;
@@ -365,7 +435,8 @@ export class GameScene extends Phaser.Scene {
         padding: { x: 40, y: 20 },
       })
       .setOrigin(0.5)
-      .setDepth(100);
+      .setScrollFactor(0)
+      .setDepth(200);
 
     this.time.delayedCall(1000, () => {
       prepText.destroy();
@@ -529,7 +600,9 @@ export class GameScene extends Phaser.Scene {
         backgroundColor: "rgba(0,0,0,0.7)",
         padding: { x: 24, y: 16 },
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(200);
     this.input.off("pointerdown");
   }
 
@@ -640,7 +713,9 @@ export class GameScene extends Phaser.Scene {
           fontSize: "11px", color: "#bb66ff", align: "center",
           fontFamily: "PingFang SC, Microsoft YaHei, sans-serif",
         })
-        .setOrigin(0.5, 1);
+        .setOrigin(0.5, 1)
+        .setScrollFactor(0)
+        .setDepth(100);
     }
     this._bossNameText.setVisible(true);
   }

@@ -12,22 +12,203 @@
       overflow: hidden;
     }
 
-    /* ====== 登录/注册页 ====== */
-    #auth-screen {
+    /* ====== 封面页（第一层） ====== */
+    #cover-screen {
+      display: none;
       width: 100vw; height: 100vh;
-      display: flex; justify-content: center; align-items: center;
-      background: radial-gradient(ellipse at center, #16213e 0%, #0a0a1a 100%);
+      position: relative;
+      overflow: hidden;
     }
+    #cover-screen.show { display: block; }
+
+    /* 背景层：CSS 渐变兜底（AI 背景图用 background-image 覆盖） */
+    .cover-bg {
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse at 30% 20%, rgba(56,189,248,0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 70% 60%, rgba(129,140,248,0.06) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 80%, rgba(74,222,128,0.05) 0%, transparent 40%),
+        radial-gradient(ellipse at center, #0f172a 0%, #0a0a1a 100%);
+      z-index: 0;
+    }
+    /* AI 背景图叠加层（用 JS 动态设置 background-image） */
+    .cover-bg-image {
+      position: absolute; inset: 0;
+      background-size: cover;
+      background-position: center;
+      opacity: 0.45;
+      z-index: 1;
+      image-rendering: pixelated;
+    }
+
+    /* 粒子容器 */
+    .cover-particles {
+      position: absolute; inset: 0;
+      z-index: 2;
+      pointer-events: none;
+    }
+    .cover-particle {
+      position: absolute;
+      border-radius: 50%;
+      animation: float-up linear infinite;
+    }
+    @keyframes float-up {
+      0%   { transform: translateY(0) scale(0); opacity: 0; }
+      5%   { opacity: 0.7; }
+      90%  { opacity: 0.2; }
+      100% { transform: translateY(-105vh) scale(1); opacity: 0; }
+    }
+
+    /* DNA 双螺旋装饰（CSS 纯绘） */
+    .cover-dna {
+      position: absolute;
+      z-index: 1;
+      pointer-events: none;
+    }
+    .cover-dna.left  { left: -40px; top: 10%; width: 160px; height: 320px; }
+    .cover-dna.right { right: -40px; bottom: 10%; width: 160px; height: 320px; }
+
+    /* 前景内容 */
+    .cover-content {
+      position: relative; z-index: 10;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      height: 100%; padding: 40px 20px;
+    }
+
+    /* 吉祥物 */
+    .cover-mascot {
+      width: 120px; height: 120px;
+      margin-bottom: 8px;
+      opacity: 0.85;
+      animation: mascot-float 4s ease-in-out infinite;
+    }
+    .cover-mascot img {
+      width: 100%; height: 100%;
+      object-fit: contain;
+      image-rendering: pixelated;
+    }
+    @keyframes mascot-float {
+      0%, 100% { transform: translateY(0); }
+      50%      { transform: translateY(-8px); }
+    }
+
+    /* 标题 */
+    .cover-title {
+      font-size: 42px; font-weight: 800;
+      color: #e2e8f0;
+      letter-spacing: 6px;
+      margin-bottom: 2px;
+      text-shadow:
+        0 0 10px rgba(56,189,248,0.5),
+        0 0 40px rgba(56,189,248,0.25),
+        0 0 80px rgba(129,140,248,0.15);
+      animation: title-breathe 3s ease-in-out infinite;
+    }
+    @keyframes title-breathe {
+      0%, 100% { text-shadow: 0 0 10px rgba(56,189,248,0.5), 0 0 40px rgba(56,189,248,0.25); }
+      50%      { text-shadow: 0 0 18px rgba(56,189,248,0.7), 0 0 60px rgba(56,189,248,0.4), 0 0 100px rgba(129,140,248,0.2); }
+    }
+
+    .cover-subtitle {
+      font-size: 15px; color: #7dd3fc;
+      letter-spacing: 4px;
+      margin-bottom: 12px;
+    }
+
+    /* Slogan */
+    .cover-slogan {
+      font-size: 14px; color: #64748b;
+      letter-spacing: 1px;
+      margin-bottom: 40px;
+      font-style: italic;
+    }
+
+    /* 按钮组 */
+    .cover-buttons {
+      display: flex; flex-direction: column;
+      align-items: center; gap: 12px;
+    }
+    .btn-cover-primary {
+      padding: 14px 56px; font-size: 18px; font-weight: 700;
+      color: #0f172a;
+      background: linear-gradient(135deg, #38bdf8, #818cf8);
+      border: none; border-radius: 12px;
+      cursor: pointer; letter-spacing: 2px;
+      box-shadow: 0 0 20px rgba(56,189,248,0.3);
+      transition: opacity 0.2s, transform 0.1s, box-shadow 0.3s;
+      animation: btn-pulse 2.5s ease-in-out infinite;
+    }
+    .btn-cover-primary:hover {
+      opacity: 0.92;
+      box-shadow: 0 0 35px rgba(56,189,248,0.5), 0 0 70px rgba(129,140,248,0.2);
+    }
+    .btn-cover-primary:active { transform: scale(0.97); }
+    @keyframes btn-pulse {
+      0%, 100% { box-shadow: 0 0 20px rgba(56,189,248,0.3); }
+      50%      { box-shadow: 0 0 35px rgba(56,189,248,0.55), 0 0 65px rgba(129,140,248,0.2); }
+    }
+
+    .btn-cover-secondary {
+      padding: 10px 32px; font-size: 14px; font-weight: 600;
+      color: #94a3b8;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px; cursor: pointer;
+      letter-spacing: 1px;
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
+    }
+    .btn-cover-secondary:hover {
+      color: #e2e8f0;
+      background: rgba(255,255,255,0.1);
+      border-color: rgba(255,255,255,0.25);
+    }
+
+    .cover-footer {
+      position: absolute; bottom: 20px;
+      font-size: 11px; color: #334155;
+      letter-spacing: 1px;
+    }
+
+    /* ====== 登录/注册页（第二层：叠加在封面之上） ====== */
+    #auth-screen {
+      display: none;
+      position: fixed; inset: 0;
+      z-index: 100;
+      justify-content: center; align-items: center;
+    }
+    #auth-screen.show { display: flex; }
+
+    /* 半透明遮罩 */
+    .auth-backdrop {
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,0.65);
+      backdrop-filter: blur(2px);
+      z-index: 0;
+    }
+
     .auth-panel {
+      position: relative; z-index: 1;
       text-align: center;
-      background: rgba(255,255,255,0.05);
+      background: rgba(15,23,42,0.92);
       border: 1px solid rgba(100,200,255,0.2);
       border-radius: 16px;
       padding: 36px 40px 28px; min-width: 380px;
-      backdrop-filter: blur(4px);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.5);
     }
     .auth-panel h1 { font-size: 28px; color: #7dd3fc; margin-bottom: 4px; letter-spacing: 2px; }
     .auth-panel .subtitle { font-size: 13px; color: #64748b; margin-bottom: 24px; }
+
+    /* 返回按钮 */
+    .auth-back-btn {
+      position: absolute; top: 12px; left: 16px;
+      background: transparent; border: none;
+      color: #64748b; font-size: 14px;
+      cursor: pointer; padding: 4px 8px;
+      transition: color 0.2s;
+    }
+    .auth-back-btn:hover { color: #e2e8f0; }
 
     /* tab 切换 */
     .auth-tabs {
@@ -54,15 +235,15 @@
       transition: border-color 0.2s;
     }
     .auth-panel input:focus { border-color: #38bdf8; }
-    .auth-panel button {
+    .auth-panel .btn-auth {
       width: 100%; margin-top: 16px; padding: 12px 0; font-size: 17px; font-weight: 600;
       color: #0f172a; background: linear-gradient(135deg, #38bdf8, #818cf8);
       border: none; border-radius: 8px; cursor: pointer; letter-spacing: 1px;
       transition: opacity 0.2s, transform 0.1s;
     }
-    .auth-panel button:hover { opacity: 0.9; }
-    .auth-panel button:active { transform: scale(0.97); }
-    .auth-panel button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .auth-panel .btn-auth:hover { opacity: 0.9; }
+    .auth-panel .btn-auth:active { transform: scale(0.97); }
+    .auth-panel .btn-auth:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
     .auth-panel .hint { margin-top: 14px; font-size: 12px; color: #475569; }
     .auth-panel .error-msg {
       display: none; margin-top: 10px; font-size: 13px;
@@ -477,9 +658,42 @@
   </style>
 </head>
 <body>
-  <!-- 登录/注册页 -->
+  <!-- ====== 第一层：封面页 ====== -->
+  <div id="cover-screen" class="show">
+    <!-- 背景 -->
+    <div class="cover-bg"></div>
+    <div class="cover-bg-image" id="cover-bg-image"></div>
+    <!-- 粒子 -->
+    <div class="cover-particles" id="cover-particles"></div>
+    <!-- DNA 装饰 -->
+    <canvas class="cover-dna left" id="cover-dna-left"></canvas>
+    <canvas class="cover-dna right" id="cover-dna-right"></canvas>
+
+    <!-- 前景内容 -->
+    <div class="cover-content">
+      <!-- 吉祥物（可用 AI 生成图片替换） -->
+      <div class="cover-mascot" id="cover-mascot">
+        <canvas id="cover-mascot-canvas" width="120" height="120"></canvas>
+      </div>
+
+      <h1 class="cover-title">🧬 变异吧！人类！</h1>
+      <p class="cover-subtitle">AI 变异进化肉鸽</p>
+      <p class="cover-slogan">每一场实验，都是独一无二的进化</p>
+
+      <div class="cover-buttons">
+        <button class="btn-cover-primary" id="btn-new-experiment">🔬 开始实验</button>
+        <button class="btn-cover-secondary" id="btn-existing-account">🔑 已有账户</button>
+      </div>
+    </div>
+
+    <p class="cover-footer">v0.2.0 · 实验室原型</p>
+  </div>
+
+  <!-- ====== 第二层：登录/注册页（叠加在封面之上） ====== -->
   <div id="auth-screen">
+    <div class="auth-backdrop"></div>
     <div class="auth-panel">
+      <button class="auth-back-btn" id="btn-auth-back">← 返回</button>
       <h1>🧬 变异吧！人类！</h1>
       <p class="subtitle" id="auth-subtitle">登录或注册一个账户</p>
 
@@ -490,7 +704,7 @@
 
       <label for="auth-username">玩家用户名</label>
       <input id="auth-username" type="text" maxlength="12" placeholder="输入你的用户名" autocomplete="off" />
-      <button id="btn-auth">登 录</button>
+      <button id="btn-auth" class="btn-auth">登 录</button>
       <p class="error-msg" id="auth-error"></p>
       <p class="hint">WASD 移动 · 鼠标点击攻击 · 击杀敌人进化</p>
     </div>

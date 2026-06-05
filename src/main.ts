@@ -27,11 +27,16 @@ const LS_KEY = "current_player";
 // ----------------------------------------------------------------
 // DOM 引用
 // ----------------------------------------------------------------
+const coverScreen = document.getElementById("cover-screen")!;
 const authScreen = document.getElementById("auth-screen")!;
 const slotsScreen = document.getElementById("slots-screen")!;
 const variantCreateScreen = document.getElementById("variant-create-screen")!;
 const gameScreen = document.getElementById("game-screen")!;
 const summaryScreen = document.getElementById("summary-screen")!;
+
+// 封面页
+const btnNewExperiment = document.getElementById("btn-new-experiment")!;
+const btnExistingAccount = document.getElementById("btn-existing-account")!;
 
 // 登录/注册页
 const authSubtitle = document.getElementById("auth-subtitle")!;
@@ -39,6 +44,7 @@ const authTabs = document.querySelectorAll(".auth-tab");
 const authUsername = document.getElementById("auth-username") as HTMLInputElement;
 const btnAuth = document.getElementById("btn-auth")!;
 const authError = document.getElementById("auth-error")!;
+const btnAuthBack = document.getElementById("btn-auth-back")!;
 
 // 存档页
 const slotsUsername = document.getElementById("slots-username")!;
@@ -100,19 +106,44 @@ function destroyGame(): void {
 // 页面切换
 // ----------------------------------------------------------------
 function hideAll(): void {
-  authScreen.style.display = "none";
+  coverScreen.classList.remove("show");
+  authScreen.classList.remove("show");
   slotsScreen.classList.remove("show");
   variantCreateScreen.classList.remove("show");
   gameScreen.style.display = "none";
   summaryScreen.classList.remove("show");
 }
 
-function showAuthScreen(): void {
+function showCoverScreen(): void {
   hideAll();
-  authScreen.style.display = "flex";
+  coverScreen.classList.add("show");
+}
+
+function showAuthScreen(mode: "login" | "register" = "login"): void {
+  hideAll();
+  // 封面保留在底层
+  coverScreen.classList.add("show");
+  // 登录面板叠加显示
+  authScreen.classList.add("show");
   authUsername.value = "";
   authError.classList.remove("show");
+  switchAuthMode(mode);
   authUsername.focus();
+}
+
+function switchAuthMode(mode: "login" | "register"): void {
+  currentAuthMode = mode;
+  authTabs.forEach((t) => {
+    const tabMode = t.getAttribute("data-tab");
+    t.classList.toggle("active", tabMode === mode);
+  });
+  if (mode === "register") {
+    btnAuth.textContent = "注 册";
+    authSubtitle.textContent = "创建新账户";
+  } else {
+    btnAuth.textContent = "登 录";
+    authSubtitle.textContent = "登录已有账户";
+  }
 }
 
 function showSlotsScreen(): void {
@@ -236,7 +267,7 @@ function logout(): void {
   currentSlot = null;
   playerNickname = "";
   destroyGame();
-  showAuthScreen();
+  showCoverScreen();
 }
 
 // ----------------------------------------------------------------
@@ -432,18 +463,23 @@ async function startFromSlot(slot: SaveSlot): Promise<void> {
 // 初始检测
 // ----------------------------------------------------------------
 function init(): void {
+  // 封面页始终先显示（即使有 localStorage 也先渲染封面，后续自动跳转）
   const saved = localStorage.getItem(LS_KEY);
   if (saved) {
     try {
       const player: PlayerInfo = JSON.parse(saved);
       currentPlayer = player;
+      // 有登录记录 → 直接跳槽位页（跳过封面）
       showSlotsScreen();
       return;
     } catch {
       localStorage.removeItem(LS_KEY);
     }
   }
-  showAuthScreen();
+  // 无记录 → 显示封面
+  showCoverScreen();
+  // 初始化封面页视觉效果
+  initCoverEffects();
 }
 
 // ----------------------------------------------------------------
@@ -453,17 +489,8 @@ function init(): void {
 // Tab 切换
 authTabs.forEach((tab) => {
   tab.addEventListener("click", () => {
-    authTabs.forEach((t) => t.classList.remove("active"));
-    tab.classList.add("active");
     const mode = tab.getAttribute("data-tab") as "login" | "register";
-    currentAuthMode = mode;
-    if (mode === "register") {
-      btnAuth.textContent = "注 册";
-      authSubtitle.textContent = "创建新账户";
-    } else {
-      btnAuth.textContent = "登 录";
-      authSubtitle.textContent = "登录已有账户";
-    }
+    switchAuthMode(mode);
     authError.classList.remove("show");
     authUsername.focus();
   });
@@ -599,6 +626,193 @@ window.addEventListener("game-complete", ((e: Event) => {
   destroyGame();
   showSummary(detail);
 }) as EventListener);
+
+// ----------------------------------------------------------------
+// 封面页事件
+// ----------------------------------------------------------------
+btnNewExperiment.addEventListener("click", () => {
+  showAuthScreen("register");
+});
+
+btnExistingAccount.addEventListener("click", () => {
+  showAuthScreen("login");
+});
+
+// 登录面板「返回」按钮
+btnAuthBack.addEventListener("click", () => {
+  showCoverScreen();
+});
+
+// ----------------------------------------------------------------
+// 封面页视觉效果（纯 CSS/Canvas）
+// ----------------------------------------------------------------
+function initCoverEffects(): void {
+  // 1. 生成浮游粒子
+  const particlesContainer = document.getElementById("cover-particles")!;
+  const particleColors = [
+    "rgba(56,189,248,0.6)",   // 天蓝
+    "rgba(129,140,248,0.5)",  // 蓝紫
+    "rgba(74,222,128,0.5)",   // 荧光绿
+    "rgba(192,132,252,0.4)",  // 淡紫
+  ];
+
+  for (let i = 0; i < 30; i++) {
+    const p = document.createElement("div");
+    p.className = "cover-particle";
+    const size = 2 + Math.random() * 4;
+    const left = Math.random() * 100;
+    const duration = 6 + Math.random() * 12;
+    const delay = Math.random() * duration;
+    const color = particleColors[Math.floor(Math.random() * particleColors.length)];
+
+    p.style.cssText = `
+      width: ${size}px; height: ${size}px;
+      left: ${left}%;
+      bottom: -10px;
+      background: ${color};
+      box-shadow: 0 0 ${size * 2}px ${color};
+      animation-duration: ${duration}s;
+      animation-delay: -${delay}s;
+    `;
+    particlesContainer.appendChild(p);
+  }
+
+  // 2. 绘制 DNA 双螺旋装饰
+  drawDNAHelix("cover-dna-left");
+  drawDNAHelix("cover-dna-right");
+
+  // 3. 绘制吉祥物（Canvas）
+  drawMascot("cover-mascot-canvas");
+}
+
+function drawDNAHelix(canvasId: string): void {
+  const canvas = document.getElementById(canvasId) as HTMLCanvasElement | null;
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d")!;
+  const w = canvas.width = canvas.offsetWidth;
+  const h = canvas.height = canvas.offsetHeight;
+
+  const cx = w / 2;
+  const strands = 18; // 多少个"阶梯"
+  const stepH = h / strands;
+
+  ctx.strokeStyle = "rgba(56,189,248,0.15)";
+  ctx.lineWidth = 2;
+
+  for (let i = 0; i < strands; i++) {
+    const y = i * stepH + stepH / 2;
+    const phase = (i / strands) * Math.PI * 2;
+    const offsetX = Math.sin(phase) * 20;
+
+    // 左边链
+    ctx.beginPath();
+    ctx.arc(cx - offsetX, y, 3, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(56,189,248,0.3)";
+    ctx.fill();
+
+    // 右边链
+    ctx.beginPath();
+    ctx.arc(cx + offsetX, y, 3, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(129,140,248,0.3)";
+    ctx.fill();
+
+    // 连接线
+    ctx.beginPath();
+    ctx.moveTo(cx - offsetX, y);
+    ctx.lineTo(cx + offsetX, y);
+    ctx.strokeStyle = "rgba(100,200,255,0.1)";
+    ctx.stroke();
+  }
+}
+
+function drawMascot(canvasId: string): void {
+  const canvas = document.getElementById(canvasId) as HTMLCanvasElement | null;
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d")!;
+  const w = canvas.width;
+  const h = canvas.height;
+  const cx = w / 2;
+  const cy = h / 2;
+  ctx.clearRect(0, 0, w, h);
+
+  // 身体（圆润的主体）
+  ctx.beginPath();
+  ctx.arc(cx, cy + 5, 30, 0, Math.PI * 2);
+  ctx.fillStyle = "#7dd3fc";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,0.2)";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // 发光的肚子
+  ctx.beginPath();
+  ctx.arc(cx, cy + 10, 18, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(74,222,128,0.6)";
+  ctx.fill();
+  // 肚子发光
+  const bellyGlow = ctx.createRadialGradient(cx, cy + 10, 5, cx, cy + 10, 22);
+  bellyGlow.addColorStop(0, "rgba(74,222,128,0.7)");
+  bellyGlow.addColorStop(1, "rgba(74,222,128,0)");
+  ctx.beginPath();
+  ctx.arc(cx, cy + 10, 22, 0, Math.PI * 2);
+  ctx.fillStyle = bellyGlow;
+  ctx.fill();
+
+  // 大眼睛（两只无辜的大眼）
+  // 左眼白
+  ctx.beginPath();
+  ctx.ellipse(cx - 10, cy - 8, 10, 12, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "#fff";
+  ctx.fill();
+  // 右眼白
+  ctx.beginPath();
+  ctx.ellipse(cx + 10, cy - 8, 10, 12, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "#fff";
+  ctx.fill();
+  // 左瞳孔
+  ctx.beginPath();
+  ctx.arc(cx - 10, cy - 6, 5, 0, Math.PI * 2);
+  ctx.fillStyle = "#1a1a2e";
+  ctx.fill();
+  // 右瞳孔
+  ctx.beginPath();
+  ctx.arc(cx + 10, cy - 6, 5, 0, Math.PI * 2);
+  ctx.fillStyle = "#1a1a2e";
+  ctx.fill();
+  // 高光
+  ctx.beginPath();
+  ctx.arc(cx - 8, cy - 9, 2, 0, Math.PI * 2);
+  ctx.fillStyle = "#fff";
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(cx + 12, cy - 9, 2, 0, Math.PI * 2);
+  ctx.fillStyle = "#fff";
+  ctx.fill();
+
+  // 小角
+  ctx.beginPath();
+  ctx.moveTo(cx - 3, cy - 30);
+  ctx.lineTo(cx - 8, cy - 48);
+  ctx.lineTo(cx + 2, cy - 32);
+  ctx.fillStyle = "#f472b6";
+  ctx.fill();
+
+  // 额外的第三只小手
+  ctx.beginPath();
+  ctx.arc(cx + 30, cy - 2, 7, 0, Math.PI * 2);
+  ctx.fillStyle = "#7dd3fc";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,0.2)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // 微笑
+  ctx.beginPath();
+  ctx.arc(cx, cy + 2, 8, 0.2, Math.PI - 0.2);
+  ctx.strokeStyle = "#475569";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
 
 // ----------------------------------------------------------------
 // 入口

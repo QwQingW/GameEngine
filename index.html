@@ -21,7 +21,7 @@
     }
     #cover-screen.show { display: block; }
 
-    /* 背景层：CSS 渐变兜底（AI 背景图用 background-image 覆盖） */
+    /* 背景层：CSS 渐变兜底 */
     .cover-bg {
       position: absolute; inset: 0;
       background:
@@ -31,32 +31,51 @@
         radial-gradient(ellipse at center, #0f172a 0%, #0a0a1a 100%);
       z-index: 0;
     }
-    /* AI 背景图叠加层（用 JS 动态设置 background-image） */
+    /* 静态背景图 */
     .cover-bg-image {
       position: absolute; inset: 0;
       background-size: cover;
       background-position: center;
-      opacity: 0.45;
+      opacity: 0.55;
       z-index: 1;
-      image-rendering: pixelated;
+      pointer-events: none;
     }
+
 
     /* 粒子容器 */
     .cover-particles {
       position: absolute; inset: 0;
-      z-index: 2;
+      z-index: 3;
       pointer-events: none;
+      overflow: hidden;
     }
-    .cover-particle {
+    /* 气泡粒子 */
+    .cover-bubble {
       position: absolute;
       border-radius: 50%;
-      animation: float-up linear infinite;
+      border: 1.5px solid rgba(56, 189, 248, 0.7);
+      background: radial-gradient(circle at 30% 30%, rgba(56,189,248,0.35), transparent 60%);
+      animation: bubble-rise linear infinite;
+      will-change: transform;
     }
-    @keyframes float-up {
-      0%   { transform: translateY(0) scale(0); opacity: 0; }
-      5%   { opacity: 0.7; }
-      90%  { opacity: 0.2; }
-      100% { transform: translateY(-105vh) scale(1); opacity: 0; }
+    @keyframes bubble-rise {
+      0%   { transform: translateY(0) translateX(0) scale(0.3); opacity: 0; }
+      10%  { opacity: 0.9; }
+      75%  { opacity: 0.5; }
+      100% { transform: translateY(-110vh) translateX(var(--drift)) scale(1); opacity: 0; }
+    }
+    /* 细胞质微粒 */
+    .cover-mote {
+      position: absolute;
+      border-radius: 50%;
+      animation: mote-drift linear infinite;
+      will-change: transform;
+    }
+    @keyframes mote-drift {
+      0%   { transform: translateY(0) translateX(0) scale(0.4); opacity: 0; }
+      8%   { opacity: 0.85; }
+      75%  { opacity: 0.35; }
+      100% { transform: translateY(-108vh) translateX(var(--drift)) scale(0.9); opacity: 0; }
     }
 
     /* DNA 双螺旋装饰（CSS 纯绘） */

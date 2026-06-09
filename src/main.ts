@@ -644,44 +644,74 @@ btnAuthBack.addEventListener("click", () => {
 });
 
 // ----------------------------------------------------------------
-// 封面页视觉效果（纯 CSS/Canvas）
+// 封面页视觉效果（纯 CSS 粒子，零 WebGL 开销）
 // ----------------------------------------------------------------
+
 function initCoverEffects(): void {
-  // 1. 生成浮游粒子
+  // 0. 静态背景图（不动）
+  const bgImage = document.getElementById("cover-bg-image")!;
+  bgImage.style.backgroundImage = `url(Materials/beginning_background.png)`;
+
+  // 1. 生成气泡粒子 + 细胞质微粒
   const particlesContainer = document.getElementById("cover-particles")!;
-  const particleColors = [
-    "rgba(56,189,248,0.6)",   // 天蓝
-    "rgba(129,140,248,0.5)",  // 蓝紫
-    "rgba(74,222,128,0.5)",   // 荧光绿
-    "rgba(192,132,252,0.4)",  // 淡紫
-  ];
 
-  for (let i = 0; i < 30; i++) {
-    const p = document.createElement("div");
-    p.className = "cover-particle";
-    const size = 2 + Math.random() * 4;
+  // 气泡粒子（圆环+高光效果）
+  for (let i = 0; i < 10; i++) {
+    const b = document.createElement("div");
+    b.className = "cover-bubble";
+    const size = 6 + Math.random() * 14;
     const left = Math.random() * 100;
-    const duration = 6 + Math.random() * 12;
+    const duration = 10 + Math.random() * 12;
     const delay = Math.random() * duration;
-    const color = particleColors[Math.floor(Math.random() * particleColors.length)];
+    const drift = (Math.random() - 0.5) * 60; // 水平漂移距离
 
-    p.style.cssText = `
+    b.style.cssText = `
       width: ${size}px; height: ${size}px;
       left: ${left}%;
-      bottom: -10px;
-      background: ${color};
-      box-shadow: 0 0 ${size * 2}px ${color};
+      bottom: -20px;
+      --drift: ${drift}px;
       animation-duration: ${duration}s;
       animation-delay: -${delay}s;
     `;
-    particlesContainer.appendChild(p);
+    particlesContainer.appendChild(b);
   }
 
-  // 2. 绘制 DNA 双螺旋装饰
+  // 细胞质微粒（实心小光点）
+  const moteColors = [
+    "rgba(56,189,248,0.85)",   // 天蓝
+    "rgba(129,140,248,0.75)",  // 蓝紫
+    "rgba(74,222,128,0.75)",   // 荧光绿
+    "rgba(192,132,252,0.6)",   // 淡紫
+    "rgba(34,211,238,0.8)",    // 青
+  ];
+  for (let i = 0; i < 15; i++) {
+    const m = document.createElement("div");
+    m.className = "cover-mote";
+    const size = 2 + Math.random() * 3.5;
+    const left = Math.random() * 100;
+    const duration = 7 + Math.random() * 9;
+    const delay = Math.random() * duration;
+    const drift = (Math.random() - 0.5) * 80;
+    const color = moteColors[Math.floor(Math.random() * moteColors.length)];
+
+    m.style.cssText = `
+      width: ${size}px; height: ${size}px;
+      left: ${left}%;
+      bottom: -15px;
+      background: ${color};
+      box-shadow: 0 0 ${size * 3}px ${color};
+      --drift: ${drift}px;
+      animation-duration: ${duration}s;
+      animation-delay: -${delay}s;
+    `;
+    particlesContainer.appendChild(m);
+  }
+
+  // 3. 绘制 DNA 双螺旋装饰
   drawDNAHelix("cover-dna-left");
   drawDNAHelix("cover-dna-right");
 
-  // 3. 绘制吉祥物（Canvas）
+  // 4. 绘制吉祥物（Canvas）
   drawMascot("cover-mascot-canvas");
 }
 
